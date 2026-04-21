@@ -1,0 +1,54 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Nạp tiền ví{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;">
+  <h2 style="margin:0 0 12px;">Quản lý nạp tiền ví</h2>
+  <form method="get" class="filter-bar" style="margin-bottom:14px;">
+    <input class="input" name="q" value="{{ q }}" placeholder="Tìm theo user / mã tham chiếu / nội dung">
+    <select class="input" name="status">
+      <option value="">-- Tất cả trạng thái --</option>
+      {% for value, label in status_choices %}
+      <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select class="input" name="sort">
+      {% for value, label in sort_choices %}
+      <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Lọc</button>
+    <a class="btn" href="{% url 'admin_topup_list' %}">Reset</a>
+  </form>
+
+  <div class="table-wrap">
+    <table class="tbl">
+      <tr style="background:#faf7ef;">
+        <th>ID</th>
+        <th>User</th>
+        <th>Mã tham chiếu</th>
+        <th>Số tiền</th>
+        <th>Trạng thái</th>
+        <th>Thời gian</th>
+        <th>Thao tác</th>
+      </tr>
+      {% for item in ds %}
+      <tr>
+        <td>#{{ item.id }}</td>
+        <td>{{ item.wallet.user.username }}</td>
+        <td>
+          <b>{{ item.reference }}</b>
+          <div class="muted">{{ item.transfer_note }}</div>
+        </td>
+        <td>{{ item.amount|vnd }} VND</td>
+        <td><span class="status status-{{ item.status }}">{{ item.get_status_display }}</span></td>
+        <td>{{ item.created_at|date:"d/m/Y H:i" }}</td>
+        <td><a class="btn" href="{% url 'admin_topup_detail' item.id %}">Chi tiết</a></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="muted" style="padding:14px;">Chưa có yêu cầu nạp tiền nào.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+{% endblock %}

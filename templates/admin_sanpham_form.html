@@ -1,0 +1,56 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - {% if mode == "edit" %}Sửa{% else %}Thêm{% endif %} sản phẩm{% endblock %}
+{% block admin_content %}
+  <div class="card" style="padding:18px;max-width:860px;">
+    <h2 style="margin:0 0 10px;">{% if mode == "edit" %}Sửa{% else %}Thêm{% endif %} sản phẩm</h2>
+    {% if form.non_field_errors %}<div class="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <form method="post" enctype="multipart/form-data" style="display:grid;gap:12px;">
+      {% csrf_token %}
+      <div><div class="label">Tên sản phẩm</div>{{ form.ten }}{{ form.ten.errors }}</div>
+      <div><div class="label">Giá gốc (VND)</div>{{ form.gia }}{{ form.gia.errors }}</div>
+      <div><div class="label">Giá khuyến mại (VND)</div>{{ form.gia_khuyen_mai }}{{ form.gia_khuyen_mai.errors }}</div>
+      <div style="padding:14px;border:1px dashed var(--line);border-radius:14px;background:#fffaf7;">
+        <div class="label" style="font-size:16px;margin-bottom:10px;">Flash Sale</div>
+        <div style="display:grid;gap:12px;">
+          <div><div class="label">Giá flash sale (VND)</div>{{ form.flash_sale_price }}{{ form.flash_sale_price.errors }}</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+            <div><div class="label">Bắt đầu</div>{{ form.flash_sale_start }}{{ form.flash_sale_start.errors }}</div>
+            <div><div class="label">Kết thúc</div>{{ form.flash_sale_end }}{{ form.flash_sale_end.errors }}</div>
+          </div>
+        </div>
+      </div>
+      <div><div class="label">Tồn kho</div>{{ form.ton_kho }}{{ form.ton_kho.errors }}</div>
+      <div><div class="label">Tag tìm kiếm</div>{{ form.search_tags }}{{ form.search_tags.errors }}<div class="muted" style="margin-top:6px;">Ví dụ: nhẫn, vàng trắng, sapphire</div></div>
+      <div><div class="label">Mô tả</div>{{ form.mo_ta }}{{ form.mo_ta.errors }}</div>
+      <div><div class="label">Trạng thái</div>{{ form.trang_thai }}{{ form.trang_thai.errors }}</div>
+      <div>
+        <div class="label">Ảnh đại diện</div>
+        {% if sp and sp.anh %}<img src="{{ sp.anh.url }}" alt="" style="width:120px;height:120px;object-fit:cover;border-radius:16px;border:1px solid var(--line);margin-bottom:8px;">{% endif %}
+        {{ form.anh }}{{ form.anh.errors }}
+      </div>
+      <div>
+        <div class="label">Ảnh nhiều góc</div>
+        {{ form.gallery_images }}{{ form.gallery_images.errors }}
+        <div class="muted" style="margin-top:6px;">Có thể chọn nhiều ảnh để hiển thị gallery cho sản phẩm.</div>
+      </div>
+      {% if gallery_images %}
+        <div>
+          <div class="label">Ảnh phụ hiện có</div>
+          <div class="row" style="gap:12px;flex-wrap:wrap;">
+            {% for img in gallery_images %}
+              <label style="border:1px solid var(--line);border-radius:14px;padding:8px;background:#fff;display:grid;gap:8px;max-width:130px;">
+                <img src="{{ img.image.url }}" alt="{{ img.caption }}" style="width:110px;height:110px;object-fit:cover;border-radius:12px;">
+                <span class="muted" style="font-size:12px;">{{ img.caption|default:"Ảnh phụ" }}</span>
+                <span><input type="checkbox" name="delete_gallery_ids" value="{{ img.id }}"> Xoá ảnh này</span>
+              </label>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      <div class="row" style="gap:10px;flex-wrap:wrap;">
+        <button class="btn primary" type="submit">Lưu</button>
+        <a class="btn" href="{% url 'admin_sanpham_list' %}">Quay lại</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

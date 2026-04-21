@@ -1,0 +1,85 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Voucher{% endblock %}
+{% block admin_content %}
+  <div class="card" style="padding:18px;">
+    <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <h2 style="margin:0;">Voucher</h2>
+      <a class="btn primary" href="{% url 'admin_voucher_create' %}">+ Thêm voucher</a>
+    </div>
+
+    <form method="get" class="filter-bar" style="margin-top:12px;">
+      <input class="input" name="q" value="{{ q }}" placeholder="Tìm theo mã / tên / mô tả...">
+      <select class="input" name="discount_type">
+        <option value="">-- Loại giảm giá --</option>
+        {% for value, label in discount_type_choices %}
+          <option value="{{ value }}" {% if discount_type == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select class="input" name="active">
+        <option value="">-- Tất cả trạng thái --</option>
+        <option value="1" {% if active == "1" %}selected{% endif %}>Đang bật</option>
+        <option value="0" {% if active == "0" %}selected{% endif %}>Đang tắt</option>
+      </select>
+      <select class="input" name="sort">
+        {% for value, label in sort_choices %}
+          <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn" type="submit">Lọc</button>
+      <a class="btn" href="{% url 'admin_voucher_list' %}">Reset</a>
+    </form>
+
+    <div class="table-wrap" style="margin-top:12px;">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Mã</th>
+            <th>Thông tin</th>
+            <th>Điều kiện</th>
+            <th>Trạng thái</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for voucher in ds %}
+          <tr>
+            <td>{{ voucher.id }}</td>
+            <td><b>{{ voucher.code }}</b></td>
+            <td style="min-width:260px;">
+              <div><b>{{ voucher.title|default:"Chưa đặt tên" }}</b></div>
+              {% if voucher.description %}<div class="muted">{{ voucher.description }}</div>{% endif %}
+              <div class="muted">
+                {% if voucher.discount_type == "percent" %}
+                  Giảm {{ voucher.value }}%
+                {% else %}
+                  Giảm {{ voucher.value|vnd }} VND
+                {% endif %}
+                {% if voucher.max_discount %} · Tối đa {{ voucher.max_discount|vnd }} VND{% endif %}
+              </div>
+            </td>
+            <td>
+              <div class="muted">Đơn tối thiểu: {{ voucher.min_order_value|vnd }} VND</div>
+              <div class="muted">Đã dùng: {{ voucher.used_count }}{% if voucher.usage_limit %}/{{ voucher.usage_limit }}{% else %} / không giới hạn{% endif %}</div>
+              {% if voucher.ends_at %}<div class="muted">Hết hạn: {{ voucher.ends_at|date:"H:i d/m/Y" }}</div>{% endif %}
+            </td>
+            <td>
+              <span class="status {% if voucher.active %}status-approved{% else %}status-cancelled{% endif %}">
+                {% if voucher.active %}Đang bật{% else %}Đang tắt{% endif %}
+              </span>
+            </td>
+            <td style="white-space:nowrap;">
+              <a class="btn" href="{% url 'admin_voucher_detail' voucher.id %}">Xem</a>
+              <a class="btn" href="{% url 'admin_voucher_edit' voucher.id %}">Sửa</a>
+              <a class="btn danger" href="{% url 'admin_voucher_delete' voucher.id %}">Xoá</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="6" class="muted">Chưa có voucher nào.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

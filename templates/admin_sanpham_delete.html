@@ -1,0 +1,16 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - Xoá sản phẩm{% endblock %}
+{% block admin_content %}
+  <div class="card" style="padding:18px;max-width:720px;">
+    <h2 style="margin:0 0 10px;">Xoá sản phẩm</h2>
+    <p>Bạn chắc chắn muốn xoá sản phẩm:</p>
+    <p><b>#{{ sp.id }} — {{ sp.ten }}</b></p>
+    <p class="muted">Nếu sản phẩm đã có đơn hàng, hệ thống sẽ chặn xoá và yêu cầu chuyển sang inactive.</p>
+
+    <form method="post" style="display:flex;gap:10px;flex-wrap:wrap;">
+      {% csrf_token %}
+      <button class="btn danger" type="submit">Xoá</button>
+      <a class="btn" href="{% url 'admin_sanpham_detail' sp.id %}">Huỷ</a>
+    </form>
+  </div>
+{% endblock %}

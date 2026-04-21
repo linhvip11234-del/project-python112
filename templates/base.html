@@ -1,0 +1,119 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Trang sức Demo{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'style.css' %}?v=logo2">
+</head>
+<body>
+  <div class="topbar">
+    <div class="container">
+      <div class="row">
+        <div class="muted">Hotline: 1800-xxxx • Hỗ trợ: 8:00–22:00</div>
+        <div class="muted">Đổi trả • Bảo hành • Cửa hàng</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="header">
+    <div class="container">
+      <div class="row">
+        <a class="brand" href="{% url 'home' %}">
+          <img class="logo-img" src="{% static 'logo-diamond.png' %}" alt="Logo Trang Sức">
+          <div>
+            <div class="title">TRANG SỨC</div>
+          </div>
+        </a>
+
+        <form class="search" method="get" action="{% url 'home' %}">
+          <input name="q" placeholder="Tìm kiếm: nhẫn, dây chuyền..." value="{{ request.GET.q|default:'' }}">
+          <button type="submit">Tìm</button>
+        </form>
+
+        <div class="actions">
+          {% if user.is_authenticated %}
+            <span class="badge">Xin chào: <b>{{ user.username }}</b></span>
+            {% if user.is_staff %}
+              <span class="badge role-admin">Vai trò: Admin</span>
+            {% else %}
+              <span class="badge role-user">Vai trò: User</span>
+            {% endif %}
+            <a class="btn" href="{% url 'gio_hang' %}">Giỏ hàng{% if cart_count %} ({{ cart_count }}){% endif %}</a>
+            <a class="btn" href="{% url 'ds_don' %}">Đơn hàng</a>
+            <a class="btn" href="{% url 'wallet' %}">Ví điện tử</a>
+            {% if user.is_staff %}
+              <a class="btn" href="{% url 'admin_dashboard' %}">Admin Panel</a>
+            {% endif %}
+            <a class="btn" href="{% url 'dang_xuat' %}">Đăng xuất</a>
+          {% else %}
+            <span class="badge role-guest">Vai trò: Guest</span>
+            <a class="btn" href="{% url 'dang_ky' %}">Đăng ký</a>
+            <a class="btn primary" href="{% url 'dang_nhap' %}">Đăng nhập</a>
+          {% endif %}
+                  </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav">
+    <div class="container">
+      <div class="row">
+        <a href="{% url 'home' %}">Tất cả</a>
+        <a href="{% url 'home' %}?q=Nhẫn">Nhẫn</a>
+        <a href="{% url 'home' %}?q=Dây">Dây chuyền</a>
+        <a href="{% url 'home' %}?q=Lắc tay">Lắc tay</a>
+        <a href="{% url 'flash_sale_products' %}">Flash Sale</a>
+        <a href="{% url 'home' %}?q=Bộ trang sức">Bộ trang sức</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    {% if messages %}
+      <div class="toast-stack">
+        {% for message in messages %}
+          <div class="toast toast-{{ message.tags|default:'info' }}">
+            <div class="toast-title">
+              {% if 'success' in message.tags %}Thành công{% elif 'error' in message.tags %}Lỗi{% elif 'warning' in message.tags %}Cảnh báo{% else %}Thông báo{% endif %}
+            </div>
+            <div>{{ message }}</div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <div class="footer">
+    <div class="container">
+      <div class="cols">
+        <div>
+          <h3>TRANG SỨC</h3>
+          <p>Demo đồ án Django: Guest/User/Admin • CRUD • Upload ảnh • Duyệt đơn.</p>
+        </div>
+        <div>
+          <h3>Hỗ trợ</h3>
+          <p>Hướng dẫn mua hàng</p>
+          <p>Đổi trả & bảo hành</p>
+          <p>Liên hệ</p>
+        </div>
+        <div>
+          <h3>Liên hệ</h3>
+          <p>Thái Nguyên</p>
+          <p>Email: demo@gmail.com</p>
+          <p>Hotline: 1800-xxxx</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    setTimeout(() => {
+      document.querySelectorAll('.toast').forEach((el) => el.classList.add('toast-hide'));
+    }, 3200);
+  </script>
+</body>
+</html>

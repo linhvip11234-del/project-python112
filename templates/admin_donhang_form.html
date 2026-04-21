@@ -1,0 +1,77 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - {% if mode == "edit" %}Sửa{% else %}Thêm{% endif %} đơn hàng{% endblock %}
+{% block admin_content %}
+  <div class="card" style="padding:18px;max-width:860px;">
+    <h2 style="margin:0 0 10px;">{% if mode == "edit" %}Sửa{% else %}Thêm{% endif %} đơn hàng</h2>
+
+    {% if form.non_field_errors %}
+      <div class="alert">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post" style="display:grid;gap:12px;">
+      {% csrf_token %}
+
+      <div>
+        <div class="label">Người đặt</div>
+        {{ form.nguoi_dat }}
+        {{ form.nguoi_dat.errors }}
+      </div>
+      <div>
+        <div class="label">Sản phẩm</div>
+        {{ form.san_pham }}
+        {{ form.san_pham.errors }}
+      </div>
+      <div class="split-2">
+        <div>
+          <div class="label">Họ tên</div>
+          {{ form.ho_ten }}
+          {{ form.ho_ten.errors }}
+        </div>
+        <div>
+          <div class="label">Số điện thoại</div>
+          {{ form.sdt }}
+          {{ form.sdt.errors }}
+        </div>
+      </div>
+      <div>
+        <div class="label">Địa chỉ</div>
+        {{ form.dia_chi }}
+        {{ form.dia_chi.errors }}
+      </div>
+      <div>
+        <div class="label">Ghi chú</div>
+        {{ form.ghi_chu }}
+        {{ form.ghi_chu.errors }}
+      </div>
+      <div class="split-3">
+        <div>
+          <div class="label">Phương thức thanh toán</div>
+          {{ form.phuong_thuc_tt }}
+          {{ form.phuong_thuc_tt.errors }}
+        </div>
+        <div>
+          <div class="label">Số lượng</div>
+          {{ form.so_luong }}
+          {{ form.so_luong.errors }}
+        </div>
+        <div>
+          <div class="label">Trạng thái</div>
+          {{ form.trang_thai }}
+          {{ form.trang_thai.errors }}
+        </div>
+      </div>
+
+      {% if don %}
+        <div class="muted">Tổng tiền hiện tại: <b>{{ don.tong_tien|vnd }} VND</b>. Hệ thống sẽ tự tính lại theo sản phẩm × số lượng khi lưu.</div>
+      {% else %}
+        <div class="muted">Tổng tiền sẽ được tự động tính theo sản phẩm × số lượng khi lưu.</div>
+      {% endif %}
+
+      <div class="row" style="gap:10px;flex-wrap:wrap;">
+        <button class="btn primary" type="submit">Lưu</button>
+        <a class="btn" href="{% url 'admin_donhang_list' %}">Quay lại</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

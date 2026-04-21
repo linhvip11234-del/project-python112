@@ -1,0 +1,99 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Đơn hàng{% endblock %}
+{% block admin_content %}
+  <div class="card admin-card">
+    <div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+      <h2 style="margin:0;">Đơn hàng</h2>
+      <a class="btn primary" href="{% url 'admin_donhang_create' %}">+ Thêm đơn</a>
+    </div>
+
+    <form method="get" class="admin-filter">
+      <input class="input" name="q" value="{{ q }}" placeholder="Tìm: user / họ tên / SĐT / sản phẩm / địa chỉ" />
+      <select class="input" name="trang_thai">
+        <option value="">-- Tất cả trạng thái --</option>
+        {% for k,v in trang_thai_choices %}
+          <option value="{{ k }}" {% if trang_thai == k %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select>
+      <select class="input" name="payment">
+        <option value="">-- Tất cả thanh toán --</option>
+        {% for k,v in payment_choices %}
+          <option value="{{ k }}" {% if payment == k %}selected{% endif %}>{{ v }}</option>
+        {% endfor %}
+      </select>
+      <select class="input" name="sort">
+        {% for value, label in sort_choices %}
+          <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn primary" type="submit">Lọc</button>
+      <a class="btn" href="{% url 'admin_donhang_list' %}">Reset</a>
+    </form>
+  </div>
+
+  <div class="card" style="padding:0;margin-top:14px;overflow:hidden;">
+    <table class="admin-table order-compact">
+      <thead>
+        <tr>
+          <th style="width:7%;">ID</th>
+          <th style="width:14%;">Khách</th>
+          <th style="width:35%;">Thông tin đơn</th>
+          <th style="width:12%;">Tổng</th>
+          <th style="width:17%;">Trạng thái</th>
+          <th style="width:15%;">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for d in ds %}
+        <tr>
+          <td>
+            <div class="cell-title">#{{ d.id }}</div>
+          </td>
+          <td>
+            <div class="cell-title">{{ d.nguoi_dat.username }}</div>
+            <div class="cell-sub">{{ d.ho_ten }} • {{ d.sdt }}</div>
+          </td>
+          <td>
+            <div class="order-info">
+              <div class="cell-title">{{ d.san_pham.ten }}</div>
+              <div class="cell-sub">Số lượng: {{ d.so_luong }}</div>
+              <div class="cell-sub">Địa chỉ: {{ d.dia_chi }}</div>
+              {% if d.ghi_chu %}<div class="cell-sub">Ghi chú: {{ d.ghi_chu }}</div>{% endif %}
+              <div class="cell-sub">Thanh toán: {{ d.get_phuong_thuc_tt_display }}</div>
+              <div class="cell-sub">Tạo lúc: {{ d.tao_luc|date:"H:i - d/m/Y" }}</div>
+            </div>
+          </td>
+          <td>
+            <div class="cell-title">{{ d.tong_tien|vnd }}</div>
+            <div class="cell-sub">VND</div>
+          </td>
+          <td>
+            <div class="order-status-box">
+              <span class="status status-{{ d.trang_thai|lower }}">{{ d.get_trang_thai_display }}</span>
+              <form method="post" action="{% url 'admin_donhang_update' d.id %}">
+                {% csrf_token %}
+                <select class="input" name="trang_thai">
+                  {% for k,v in trang_thai_choices %}
+                    <option value="{{ k }}" {% if d.trang_thai == k %}selected{% endif %}>{{ v }}</option>
+                  {% endfor %}
+                </select>
+                <button class="btn" type="submit">Lưu</button>
+              </form>
+            </div>
+          </td>
+          <td>
+            <div class="admin-actions">
+              <a class="btn" href="{% url 'admin_donhang_detail' d.id %}">Xem</a>
+              <a class="btn" href="{% url 'admin_donhang_edit' d.id %}">Sửa</a>
+              <a class="btn danger" href="{% url 'admin_donhang_delete' d.id %}">Xoá</a>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" style="padding:12px;color:#666;">Không có đơn nào.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - Nhà cung cấp{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;">
+  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0;">Nhà cung cấp</h2>
+      <div class="muted">Tổng NCC: <b>{{ supplier_count }}</b> • Đang hoạt động: <b>{{ active_count }}</b></div>
+    </div>
+    <a class="btn primary" href="{% url 'admin_supplier_create' %}">+ Thêm nhà cung cấp</a>
+  </div>
+
+  <form method="get" class="filter-bar" style="margin-top:12px;">
+    <input class="input" name="q" value="{{ q }}" placeholder="Tìm theo tên, sđt, email...">
+    <select class="input" name="active">
+      <option value="">-- Trạng thái --</option>
+      <option value="active" {% if active == 'active' %}selected{% endif %}>Đang hoạt động</option>
+      <option value="inactive" {% if active == 'inactive' %}selected{% endif %}>Tạm ngưng</option>
+    </select>
+    <select class="input" name="sort">
+      {% for value, label in sort_choices %}
+        <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Lọc</button>
+    <a class="btn" href="{% url 'admin_supplier_list' %}">Reset</a>
+  </form>
+
+  <div class="table-wrap" style="margin-top:12px;">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Tên NCC</th>
+          <th>Liên hệ</th>
+          <th>Địa chỉ</th>
+          <th>Trạng thái</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for supplier in ds %}
+        <tr>
+          <td>{{ supplier.id }}</td>
+          <td><b>{{ supplier.ten }}</b></td>
+          <td>
+            <div>{{ supplier.sdt|default:"—" }}</div>
+            <div class="muted">{{ supplier.email|default:"" }}</div>
+          </td>
+          <td>{{ supplier.dia_chi|default:"—" }}</td>
+          <td>{% if supplier.active %}<span class="status">Hoạt động</span>{% else %}<span class="status" style="background:#ffefef;color:#c62828;border-color:#ffcaca;">Tạm ngưng</span>{% endif %}</td>
+          <td style="white-space:nowrap;">
+            <a class="btn" href="{% url 'admin_supplier_detail' supplier.id %}">Chi tiết</a>
+            <a class="btn" href="{% url 'admin_supplier_edit' supplier.id %}">Sửa</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="muted">Chưa có nhà cung cấp.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

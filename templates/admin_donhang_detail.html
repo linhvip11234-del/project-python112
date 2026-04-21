@@ -1,0 +1,55 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Chi tiết đơn hàng{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;">
+  <div class="row" style="justify-content:space-between;gap:16px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0 0 8px;">Đơn hàng #{{ don.id }}</h2>
+      <p><b>Khách:</b> {{ don.nguoi_dat.username }}</p>
+      <p><b>Sản phẩm:</b> {{ don.san_pham.ten }}</p>
+      <p><b>Số lượng:</b> {{ don.so_luong }}</p>
+      <p><b>Tổng tiền:</b> {{ don.tong_tien|vnd }} VND</p>
+      <p><b>Thanh toán:</b> {{ don.get_phuong_thuc_tt_display }}</p>
+      <p><b>Đã thanh toán:</b> {% if don.da_thanh_toan %}<span class="status status-approved">Có</span>{% else %}<span class="status status-pending">Chưa</span>{% endif %}</p>
+      {% if don.ma_thanh_toan %}<p><b>Mã thanh toán:</b> {{ don.ma_thanh_toan }}</p>{% endif %}
+      {% if don.thanh_toan_luc %}<p><b>Thanh toán lúc:</b> {{ don.thanh_toan_luc }}</p>{% endif %}
+      <p><b>Người nhận:</b> {{ don.ho_ten }} • {{ don.sdt }}</p>
+      <p><b>Địa chỉ:</b> {{ don.dia_chi }}</p>
+      {% if don.ghi_chu %}<p><b>Ghi chú:</b> {{ don.ghi_chu }}</p>{% endif %}
+      <p><b>Trạng thái:</b> <span class="status status-{{ don.trang_thai|lower }}">{{ don.get_trang_thai_display }}</span></p>
+      <p><b>Tạo lúc:</b> {{ don.tao_luc }}</p>
+      <p><b>Trạng thái hợp lệ tiếp theo:</b>
+        {% if allowed_statuses %}
+          {% for code, label in allowed_statuses %}
+            <span class="status status-{{ code|lower }}">{{ label }}</span>
+          {% endfor %}
+        {% else %}
+          <span class="muted">Không còn bước tiếp theo.</span>
+        {% endif %}
+      </p>
+    </div>
+
+    <div class="row" style="gap:10px;flex-wrap:wrap;align-items:flex-start;">
+      <a class="btn" href="{% url 'admin_donhang_list' %}">Quay lại</a>
+      <a class="btn primary" href="{% url 'admin_donhang_edit' don.id %}">Sửa</a>
+      <a class="btn danger" href="{% url 'admin_donhang_delete' don.id %}">Xoá</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+<div class="card" style="padding:18px;margin-top:16px;">
+  <h3 style="margin-top:0;">Lịch sử trạng thái đơn hàng</h3>
+  <div style="display:grid;gap:10px;">
+    {% for h in status_histories %}
+      <div style="padding:10px 12px;border:1px solid #eee;border-radius:12px;">
+        <div><b>{% if h.old_status %}{{ h.old_status }} → {% endif %}{{ h.new_status }}</b></div>
+        <div class="muted">{{ h.created_at|date:"d/m/Y H:i" }}{% if h.actor %} • {{ h.actor.username }}{% endif %}</div>
+        {% if h.note %}<div class="muted">{{ h.note }}</div>{% endif %}
+      </div>
+    {% empty %}
+      <div class="muted">Chưa có lịch sử trạng thái.</div>
+    {% endfor %}
+  </div>
+</div>

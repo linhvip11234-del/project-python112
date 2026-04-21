@@ -1,0 +1,16 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\config",
+    "\\config\\__pycache__",
+    "\\media",
+    "\\media\\sanpham",
+    "\\shop\\migrations",
+    "\\shop\\templatetags",
+    "\\shop\\__pycache__",
+    "\\static",
+    "\\templates"
+  ],
+  "SelectedNode": "\\shop",
+  "PreviewInSolutionExplorer": false
+}

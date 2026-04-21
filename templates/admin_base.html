@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+<div class="admin-wrap">
+  <aside class="admin-side card">
+    <div class="admin-side-title">BẢNG ĐIỀU KHIỂN</div>
+    <div class="admin-nav">
+      <a class="admin-link" href="{% url 'admin_dashboard' %}">Tổng quan</a>
+      <a class="admin-link" href="{% url 'admin_sanpham_list' %}">Sản phẩm</a>
+      <a class="admin-link" href="{% url 'admin_inventory_list' %}">Quản lý kho</a>
+      <a class="admin-link" href="{% url 'admin_supplier_list' %}">Nhà cung cấp</a>
+      <a class="admin-link" href="{% url 'admin_receipt_list' %}">Phiếu nhập kho</a>
+      <a class="admin-link" href="{% url 'admin_batch_list' %}">Lô hàng nhập</a>
+      <a class="admin-link" href="{% url 'admin_donhang_list' %}">Đơn hàng</a>
+      <a class="admin-link" href="{% url 'admin_voucher_list' %}">Voucher</a>
+      <a class="admin-link" href="{% url 'admin_topup_list' %}">Nạp tiền ví</a>
+      <a class="admin-link" href="{% url 'admin_user_list' %}">Users</a>
+      <a class="admin-link" href="/admin/" target="_blank">Django Admin</a>
+    </div>
+    <div class="muted" style="margin-top:10px;font-size:13px;">
+      Chỉ tài khoản <b>Admin</b> mới xem được khu vực này.
+    </div>
+  </aside>
+
+  <section class="admin-main">
+    {% block admin_content %}{% endblock %}
+  </section>
+</div>
+{% endblock %}

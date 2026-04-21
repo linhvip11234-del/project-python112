@@ -1,0 +1,23 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - {% if mode == 'edit' %}Sửa{% else %}Thêm{% endif %} nhà cung cấp{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;max-width:760px;">
+  <h2 style="margin:0 0 10px;">{% if mode == 'edit' %}Sửa{% else %}Thêm{% endif %} nhà cung cấp</h2>
+  {% if form.non_field_errors %}<div class="alert">{{ form.non_field_errors }}</div>{% endif %}
+  <form method="post" style="display:grid;gap:12px;">
+    {% csrf_token %}
+    <div><div class="label">Tên NCC</div>{{ form.ten }}{{ form.ten.errors }}</div>
+    <div class="row" style="gap:12px;flex-wrap:wrap;">
+      <div style="flex:1 1 240px;"><div class="label">SĐT</div>{{ form.sdt }}{{ form.sdt.errors }}</div>
+      <div style="flex:1 1 240px;"><div class="label">Email</div>{{ form.email }}{{ form.email.errors }}</div>
+    </div>
+    <div><div class="label">Địa chỉ</div>{{ form.dia_chi }}{{ form.dia_chi.errors }}</div>
+    <div><div class="label">Ghi chú</div>{{ form.ghi_chu }}{{ form.ghi_chu.errors }}</div>
+    <label class="row" style="gap:10px;align-items:center;">{{ form.active }} <span>Đang hoạt động</span></label>
+    <div class="row" style="gap:10px;flex-wrap:wrap;">
+      <button class="btn primary" type="submit">Lưu</button>
+      <a class="btn" href="{% url 'admin_supplier_list' %}">Quay lại</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - Xoá nhà cung cấp{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;max-width:680px;">
+  <h2 style="margin:0 0 10px;">Xoá nhà cung cấp</h2>
+  <p>Bạn có chắc muốn xoá <b>{{ supplier.ten }}</b> không?</p>
+  <form method="post" class="row" style="gap:10px;flex-wrap:wrap;">
+    {% csrf_token %}
+    <button class="btn primary" type="submit">Xác nhận xoá</button>
+    <a class="btn" href="{% url 'admin_supplier_detail' supplier.id %}">Quay lại</a>
+  </form>
+</div>
+{% endblock %}

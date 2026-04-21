@@ -1,0 +1,82 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Quản lý kho{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;">
+  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0;">Quản lý kho</h2>
+      <div class="muted">Tổng SP: <b>{{ total_products }}</b> • Sắp hết: <b>{{ low_stock_count }}</b> • Hết hàng: <b>{{ out_stock_count }}</b></div>
+    </div>
+    <a class="btn" href="{% url 'admin_sanpham_list' %}">Xem sản phẩm</a>
+  </div>
+
+  <form method="get" class="filter-bar" style="margin-top:12px;">
+    <input class="input" name="q" value="{{ q }}" placeholder="Tìm theo tên sản phẩm...">
+    <select class="input" name="stock_status">
+      <option value="">-- Tất cả tồn kho --</option>
+      <option value="out" {% if stock_status == 'out' %}selected{% endif %}>Hết hàng</option>
+      <option value="low" {% if stock_status == 'low' %}selected{% endif %}>Sắp hết (1-5)</option>
+      <option value="available" {% if stock_status == 'available' %}selected{% endif %}>Còn tốt (&gt;5)</option>
+    </select>
+    <select class="input" name="sort">
+      {% for value, label in sort_choices %}
+        <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Lọc</button>
+    <a class="btn" href="{% url 'admin_inventory_list' %}">Reset</a>
+  </form>
+
+  <div class="table-wrap" style="margin-top:12px;">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Sản phẩm</th>
+          <th>Giá hiện tại</th>
+          <th>Tồn kho</th>
+          <th>Trạng thái kho</th>
+          <th>Cập nhật gần nhất</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for sp in ds %}
+        <tr>
+          <td>{{ sp.id }}</td>
+          <td style="min-width:260px;">{{ sp.ten }}</td>
+          <td><b>{{ sp.gia_hien_tai|vnd }}</b> VND</td>
+          <td><b>{{ sp.ton_kho }}</b></td>
+          <td>
+            {% if sp.ton_kho <= 0 %}
+              <span class="status" style="background:#ffefef;color:#c62828;border-color:#ffcaca;">Hết hàng</span>
+            {% elif sp.ton_kho <= 5 %}
+              <span class="status" style="background:#fff8e1;color:#b26a00;border-color:#ffe0a3;">Sắp hết</span>
+            {% else %}
+              <span class="status">Ổn định</span>
+            {% endif %}
+          </td>
+          <td>
+            {% with last=sp.inventory_histories.first %}
+              {% if last %}
+                <div>{{ last.created_at|date:"H:i d/m/Y" }}</div>
+                <div class="muted">{{ last.get_change_type_display }}</div>
+              {% else %}
+                <span class="muted">Chưa có log</span>
+              {% endif %}
+            {% endwith %}
+          </td>
+          <td style="white-space:nowrap;">
+            <a class="btn" href="{% url 'admin_inventory_detail' sp.id %}">Xem kho</a>
+            <a class="btn primary" href="{% url 'admin_inventory_adjust' sp.id %}">Cập nhật</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="muted">Không có dữ liệu kho.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

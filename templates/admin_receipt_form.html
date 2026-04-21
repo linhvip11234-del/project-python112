@@ -1,0 +1,50 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - Tạo phiếu nhập kho{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;">
+  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0;">Tạo phiếu nhập kho</h2>
+      <div class="muted">Hỗ trợ nhập hàng theo nhiều dòng / nhiều lô trong cùng một phiếu.</div>
+    </div>
+    <a class="btn" href="{% url 'admin_receipt_list' %}">Quay lại</a>
+  </div>
+
+  {% if form.non_field_errors %}<div class="alert" style="margin-top:12px;">{{ form.non_field_errors }}</div>{% endif %}
+  {% if item_formset.non_form_errors %}<div class="alert" style="margin-top:12px;">{{ item_formset.non_form_errors }}</div>{% endif %}
+
+  <form method="post" style="display:grid;gap:14px;margin-top:12px;">
+    {% csrf_token %}
+    <div class="row" style="gap:12px;flex-wrap:wrap;">
+      <div style="flex:1 1 280px;"><div class="label">Nhà cung cấp</div>{{ form.supplier }}{{ form.supplier.errors }}</div>
+      <div style="flex:2 1 320px;"><div class="label">Ghi chú phiếu</div>{{ form.note }}{{ form.note.errors }}</div>
+    </div>
+
+    {{ item_formset.management_form }}
+    <div class="card" style="padding:14px;background:#fffaf7;">
+      <h3 style="margin:0 0 10px;">Dòng nhập kho</h3>
+      <div style="display:grid;gap:12px;">
+        {% for item_form in item_formset %}
+          <div style="padding:12px;border:1px dashed var(--line);border-radius:14px;">
+            <div class="row" style="gap:12px;flex-wrap:wrap;">
+              <div style="flex:2 1 260px;"><div class="label">Sản phẩm</div>{{ item_form.product }}{{ item_form.product.errors }}</div>
+              <div style="flex:1 1 140px;"><div class="label">Số lượng</div>{{ item_form.quantity }}{{ item_form.quantity.errors }}</div>
+              <div style="flex:1 1 160px;"><div class="label">Đơn giá nhập</div>{{ item_form.unit_price }}{{ item_form.unit_price.errors }}</div>
+            </div>
+            <div class="row" style="gap:12px;flex-wrap:wrap;margin-top:10px;">
+              <div style="flex:1 1 200px;"><div class="label">Mã lô</div>{{ item_form.batch_code }}{{ item_form.batch_code.errors }}</div>
+              <div style="flex:2 1 280px;"><div class="label">Ghi chú dòng</div>{{ item_form.note }}{{ item_form.note.errors }}</div>
+            </div>
+            {% if item_form.DELETE %}<div style="display:none;">{{ item_form.DELETE }}</div>{% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="row" style="gap:10px;flex-wrap:wrap;">
+      <button class="btn primary" type="submit">Lưu phiếu nháp</button>
+      <button class="btn" type="submit" name="receive_now" value="1">Lưu và nhập kho ngay</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

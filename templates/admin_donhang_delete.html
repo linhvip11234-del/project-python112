@@ -1,0 +1,15 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - Xoá đơn hàng{% endblock %}
+{% block admin_content %}
+  <div class="card" style="padding:18px;max-width:720px;">
+    <h2 style="margin:0 0 10px;">Xoá đơn hàng</h2>
+    <p>Bạn chắc chắn muốn xoá đơn hàng <b>#{{ don.id }}</b>?</p>
+    <p><b>Khách:</b> {{ don.nguoi_dat.username }}</p>
+    <p><b>Sản phẩm:</b> {{ don.san_pham.ten }}</p>
+    <form method="post" style="display:flex;gap:10px;flex-wrap:wrap;">
+      {% csrf_token %}
+      <button class="btn danger" type="submit">Xoá</button>
+      <a class="btn" href="{% url 'admin_donhang_detail' don.id %}">Huỷ</a>
+    </form>
+  </div>
+{% endblock %}

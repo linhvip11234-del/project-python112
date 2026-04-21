@@ -1,0 +1,121 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Chi tiết kho<div class="card" style="padding:18px;margin-top:14px;">
+  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <h3 style="margin:0;">Lô hàng gần đây</h3>
+    <a class="btn" href="{% url 'admin_receipt_list' %}">Xem phiếu nhập kho</a>
+  </div>
+  <div class="table-wrap" style="margin-top:10px;">
+    <table class="tbl">
+      <thead><tr><th>Mã lô</th><th>Phiếu nhập</th><th>SL nhập</th><th>SL còn lại</th><th></th></tr></thead>
+      <tbody>
+      {% for batch in sp.inventory_batches.all|slice:":8" %}
+        <tr>
+          <td>{{ batch.batch_code }}</td>
+          <td>{{ batch.receipt.code }}</td>
+          <td>{{ batch.so_luong_nhap }}</td>
+          <td>{{ batch.so_luong_con_lai }}</td>
+          <td><a class="btn" href="{% url 'admin_batch_detail' batch.id %}">Chi tiết lô</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="muted">Chưa có lô hàng nhập cho sản phẩm này.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;">
+  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0;">Kho sản phẩm #{{ sp.id }}</h2>
+      <div class="muted">{{ sp.ten }}</div>
+    </div>
+    <div class="row" style="gap:10px;flex-wrap:wrap;">
+      <a class="btn" href="{% url 'admin_inventory_list' %}">Quay lại</a>
+      <a class="btn primary" href="{% url 'admin_inventory_adjust' sp.id %}">Cập nhật kho</a>
+    </div>
+  </div>
+
+  <div class="grid-4" style="margin-top:14px;">
+    <div class="stat">
+      <div class="stat-k">Tồn kho hiện tại</div>
+      <div class="stat-v">{{ sp.ton_kho }}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-k">Giá hiện tại</div>
+      <div class="stat-v" style="font-size:24px;">{{ sp.gia_hien_tai|vnd }}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-k">Trạng thái kho</div>
+      <div class="stat-v" style="font-size:24px;">{% if sp.ton_kho <= 0 %}Hết hàng{% elif sp.ton_kho <= 5 %}Sắp hết{% else %}Ổn định{% endif %}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-k">Số đơn đã bán</div>
+      <div class="stat-v">{{ sp.don_hangs.count }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="padding:18px;margin-top:14px;">
+  <h3 style="margin:0 0 10px;">Lịch sử nhập / xuất kho</h3>
+  <div class="table-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th>Thời gian</th>
+          <th>Loại</th>
+          <th>Biến động</th>
+          <th>Tồn trước</th>
+          <th>Tồn sau</th>
+          <th>Người thực hiện</th>
+          <th>Ghi chú</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for h in histories %}
+        <tr>
+          <td>{{ h.created_at|date:"H:i d/m/Y" }}</td>
+          <td>{{ h.get_change_type_display }}</td>
+          <td>{% if h.quantity_change >= 0 %}+{% endif %}{{ h.quantity_change }}</td>
+          <td>{{ h.old_stock }}</td>
+          <td><b>{{ h.new_stock }}</b></td>
+          <td>{% if h.actor %}{{ h.actor.username }}{% else %}<span class="muted">Hệ thống</span>{% endif %}</td>
+          <td>
+            {{ h.note|default:"—" }}
+            {% if h.order %}<div class="muted">Đơn #{{ h.order.id }}</div>{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" class="muted">Chưa có lịch sử kho.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="card" style="padding:18px;margin-top:14px;">
+  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <h3 style="margin:0;">Lô hàng gần đây</h3>
+    <a class="btn" href="{% url 'admin_receipt_list' %}">Xem phiếu nhập kho</a>
+  </div>
+  <div class="table-wrap" style="margin-top:10px;">
+    <table class="tbl">
+      <thead><tr><th>Mã lô</th><th>Phiếu nhập</th><th>SL nhập</th><th>SL còn lại</th><th></th></tr></thead>
+      <tbody>
+      {% for batch in sp.inventory_batches.all|slice:":8" %}
+        <tr>
+          <td>{{ batch.batch_code }}</td>
+          <td>{{ batch.receipt.code }}</td>
+          <td>{{ batch.so_luong_nhap }}</td>
+          <td>{{ batch.so_luong_con_lai }}</td>
+          <td><a class="btn" href="{% url 'admin_batch_detail' batch.id %}">Chi tiết lô</a></td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5" class="muted">Chưa có lô hàng nhập cho sản phẩm này.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

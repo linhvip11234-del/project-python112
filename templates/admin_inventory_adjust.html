@@ -1,0 +1,49 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - Cập nhật kho{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;max-width:760px;">
+  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0;">Cập nhật kho</h2>
+      <div class="muted">Sản phẩm: <b>{{ sp.ten }}</b> • Tồn hiện tại: <b>{{ sp.ton_kho }}</b></div>
+    </div>
+    <a class="btn" href="{% url 'admin_inventory_detail' sp.id %}">Quay lại</a>
+  </div>
+
+  <form method="post" style="margin-top:14px;">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert-error">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="grid-2">
+      <div>
+        <label>{{ form.action.label }}</label>
+        {{ form.action }}
+        {% if form.action.errors %}<div class="error-text">{{ form.action.errors|join:', ' }}</div>{% endif %}
+      </div>
+      <div>
+        <label>{{ form.quantity.label }}</label>
+        {{ form.quantity }}
+        {% if form.quantity.errors %}<div class="error-text">{{ form.quantity.errors|join:', ' }}</div>{% endif %}
+      </div>
+    </div>
+    <div style="margin-top:12px;">
+      <label>{{ form.note.label }}</label>
+      {{ form.note }}
+      {% if form.note.errors %}<div class="error-text">{{ form.note.errors|join:', ' }}</div>{% endif %}
+    </div>
+
+    <div class="card" style="padding:14px;margin-top:14px;background:#faf7ef;">
+      <div><b>Hướng dẫn:</b></div>
+      <ul style="margin:8px 0 0 18px;">
+        <li><b>Đặt lại tồn kho</b>: nhập số tồn chính xác sau khi kiểm kho.</li>
+        <li><b>Nhập thêm</b>: cộng thêm vào tồn hiện tại.</li>
+        <li><b>Xuất bớt</b>: trừ bớt khỏi tồn hiện tại.</li>
+      </ul>
+    </div>
+
+    <div class="row" style="gap:10px;margin-top:14px;">
+      <button class="btn primary" type="submit">Lưu cập nhật</button>
+      <a class="btn" href="{% url 'admin_inventory_detail' sp.id %}">Huỷ</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

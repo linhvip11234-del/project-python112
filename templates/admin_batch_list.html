@@ -1,0 +1,39 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Lô hàng{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;">
+  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0;">Lô hàng nhập</h2>
+      <div class="muted">Tổng số lô: <b>{{ batch_count }}</b></div>
+    </div>
+    <a class="btn" href="{% url 'admin_receipt_list' %}">Xem phiếu nhập</a>
+  </div>
+  <form method="get" class="filter-bar" style="margin-top:12px;">
+    <input class="input" name="q" value="{{ q }}" placeholder="Tìm theo mã lô, sản phẩm, phiếu nhập...">
+    <select class="input" name="sort">
+      {% for value, label in sort_choices %}
+        <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Lọc</button>
+    <a class="btn" href="{% url 'admin_batch_list' %}">Reset</a>
+  </form>
+  <div class="table-wrap" style="margin-top:12px;"><table class="tbl"><thead><tr><th>Mã lô</th><th>Sản phẩm</th><th>NCC</th><th>Phiếu nhập</th><th>SL nhập</th><th>SL còn lại</th><th></th></tr></thead><tbody>
+    {% for batch in ds %}
+      <tr>
+        <td><b>{{ batch.batch_code }}</b></td>
+        <td>{{ batch.san_pham.ten }}</td>
+        <td>{{ batch.supplier.ten|default:'—' }}</td>
+        <td>{{ batch.receipt.code }}</td>
+        <td>{{ batch.so_luong_nhap }}</td>
+        <td>{{ batch.so_luong_con_lai }}</td>
+        <td><a class="btn" href="{% url 'admin_batch_detail' batch.id %}">Chi tiết</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7" class="muted">Chưa có lô hàng.</td></tr>
+    {% endfor %}
+  </tbody></table></div>
+</div>
+{% endblock %}

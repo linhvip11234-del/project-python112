@@ -1,0 +1,56 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Chi tiết sản phẩm{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;">
+  <div class="row" style="justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="width:180px;height:180px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff;display:flex;align-items:center;justify-content:center;">
+        {% if sp.anh %}<img src="{{ sp.anh.url }}" alt="{{ sp.ten }}" style="width:100%;height:100%;object-fit:cover;">{% else %}<span class="muted">No image</span>{% endif %}
+      </div>
+      <div>
+        <div class="row" style="gap:10px;align-items:center;flex-wrap:wrap;"><h2 style="margin:0;">{{ sp.ten }}</h2>{% if sp.dang_flash_sale %}<span class="status" style="background:#ffefef;color:#c62828;border-color:#ffcaca;">FLASH SALE</span>{% endif %}</div>
+        <p><b>ID:</b> {{ sp.id }}</p>
+        <p><b>Giá hiện tại:</b> {{ sp.gia_hien_tai|vnd }} VND</p>
+        <p><b>Giá gốc:</b> {{ sp.gia|vnd }} VND</p>
+        <p><b>Tồn kho:</b> {{ sp.ton_kho }}</p>
+        <p><b>Trạng thái:</b> <span class="status status-{{ sp.trang_thai|lower }}">{{ sp.get_trang_thai_display }}</span></p>
+        <p><b>Tag:</b> {{ sp.search_tags|default:"-" }}</p>
+        <p><b>Đánh giá:</b> {{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5 ({{ sp.review_count }} đánh giá)</p>
+        <p style="max-width:620px;"><b>Mô tả:</b> {{ sp.mo_ta|default:"Chưa có mô tả." }}</p>
+      </div>
+    </div>
+    <div class="row" style="gap:10px;flex-wrap:wrap;">
+      <a class="btn" href="{% url 'admin_sanpham_list' %}">Quay lại</a>
+      <a class="btn primary" href="{% url 'admin_sanpham_edit' sp.id %}">Sửa</a>
+      <a class="btn" href="{% url 'admin_inventory_detail' sp.id %}">Quản lý kho</a>
+      <a class="btn danger" href="{% url 'admin_sanpham_delete' sp.id %}">Xoá</a>
+    </div>
+  </div>
+
+  {% if gallery_images %}
+    <div class="section"><h2>Ảnh nhiều góc</h2></div>
+    <div class="row" style="gap:12px;flex-wrap:wrap;">
+      {% for img in gallery_images %}
+        <div style="width:130px;height:130px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;">
+          <img src="{{ img.image.url }}" alt="{{ img.caption }}" style="width:100%;height:100%;object-fit:cover;">
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="section"><h2>Đánh giá gần đây</h2></div>
+  <div style="display:grid;gap:12px;">
+    {% for review in reviews %}
+      <div style="padding:12px;border:1px solid var(--line);border-radius:12px;background:#fff;">
+        <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;"><b>{{ review.user.username }}</b><span class="muted">{{ review.created_at|date:"H:i d/m/Y" }}</span></div>
+        <div style="color:#d18a00;">{{ review.stars }}</div>
+        {% if review.title %}<div><b>{{ review.title }}</b></div>{% endif %}
+        <div class="muted">{{ review.comment|default:"(Không có nội dung)" }}</div>
+      </div>
+    {% empty %}
+      <div class="muted">Chưa có đánh giá nào.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

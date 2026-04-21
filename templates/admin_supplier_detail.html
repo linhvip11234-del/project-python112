@@ -1,0 +1,65 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Chi tiết nhà cung cấp{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;">
+  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0;">{{ supplier.ten }}</h2>
+      <div class="muted">Nhà cung cấp #{{ supplier.id }}</div>
+    </div>
+    <div class="row" style="gap:10px;flex-wrap:wrap;">
+      <a class="btn" href="{% url 'admin_supplier_list' %}">Quay lại</a>
+      <a class="btn" href="{% url 'admin_supplier_edit' supplier.id %}">Sửa</a>
+      <a class="btn primary" href="{% url 'admin_receipt_create' %}">+ Tạo phiếu nhập</a>
+    </div>
+  </div>
+
+  <div class="grid-4" style="margin-top:14px;">
+    <div class="stat"><div class="stat-k">SĐT</div><div class="stat-v" style="font-size:20px;">{{ supplier.sdt|default:'—' }}</div></div>
+    <div class="stat"><div class="stat-k">Email</div><div class="stat-v" style="font-size:18px;">{{ supplier.email|default:'—' }}</div></div>
+    <div class="stat"><div class="stat-k">Phiếu nhập</div><div class="stat-v">{{ supplier.purchase_receipts.count }}</div></div>
+    <div class="stat"><div class="stat-k">Lô hàng</div><div class="stat-v">{{ supplier.inventory_batches.count }}</div></div>
+  </div>
+
+  <div style="margin-top:14px;"><div class="label">Địa chỉ</div><div>{{ supplier.dia_chi|default:"—" }}</div></div>
+  <div style="margin-top:10px;"><div class="label">Ghi chú</div><div>{{ supplier.ghi_chu|default:"—" }}</div></div>
+</div>
+
+<div class="card" style="padding:18px;margin-top:14px;">
+  <h3 style="margin:0 0 10px;">Phiếu nhập gần đây</h3>
+  <div class="table-wrap"><table class="tbl"><thead><tr><th>Mã phiếu</th><th>Trạng thái</th><th>Số lượng</th><th>Giá trị</th><th></th></tr></thead><tbody>
+    {% for receipt in recent_receipts %}
+      <tr>
+        <td>{{ receipt.code }}</td>
+        <td>{{ receipt.get_status_display }}</td>
+        <td>{{ receipt.tong_so_luong }}</td>
+        <td>{{ receipt.tong_gia_tri|vnd }} VND</td>
+        <td><a class="btn" href="{% url 'admin_receipt_detail' receipt.id %}">Xem phiếu</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" class="muted">Chưa có phiếu nhập.</td></tr>
+    {% endfor %}
+  </tbody></table></div>
+</div>
+
+<div class="card" style="padding:18px;margin-top:14px;">
+  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <h3 style="margin:0;">Lô hàng gần đây</h3>
+    <a class="btn" href="{% url 'admin_supplier_delete' supplier.id %}">Xoá NCC</a>
+  </div>
+  <div class="table-wrap" style="margin-top:10px;"><table class="tbl"><thead><tr><th>Mã lô</th><th>Sản phẩm</th><th>SL nhập</th><th>Đơn giá</th><th></th></tr></thead><tbody>
+    {% for batch in recent_batches %}
+      <tr>
+        <td>{{ batch.batch_code }}</td>
+        <td>{{ batch.san_pham.ten }}</td>
+        <td>{{ batch.so_luong_nhap }}</td>
+        <td>{{ batch.don_gia_nhap|vnd }} VND</td>
+        <td><a class="btn" href="{% url 'admin_batch_detail' batch.id %}">Chi tiết lô</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="5" class="muted">Chưa có lô hàng.</td></tr>
+    {% endfor %}
+  </tbody></table></div>
+</div>
+{% endblock %}

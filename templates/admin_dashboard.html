@@ -1,0 +1,148 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Tổng quan{% endblock %}
+{% block admin_content %}
+  <div class="card" style="padding:18px;">
+    <h2 style="margin:0 0 10px;">Tổng quan</h2>
+    <div class="grid-4">
+      <div class="stat">
+        <div class="stat-k">Sản phẩm</div>
+        <div class="stat-v">{{ tong_sp }}</div>
+        <div class="muted">Active: {{ tong_sp_active }} • Inactive: {{ tong_sp_inactive }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-k">Tổng đơn</div>
+        <div class="stat-v">{{ tong_don }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-k">Chờ xác nhận</div>
+        <div class="stat-v">{{ cho_xac_nhan }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-k">Đã duyệt</div>
+        <div class="stat-v">{{ da_duyet }}</div>
+        <div class="muted">Đã huỷ: <b>{{ da_huy }}</b></div>
+      </div>
+          <div class="stat">
+        <div class="stat-k">Nạp tiền ví</div>
+        <div class="stat-v">{{ nap_cho_duyet }}</div>
+        <div class="muted">Đã cộng ví: {{ nap_hoan_tat }}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-k">Flash Sale</div>
+        <div class="stat-v">{{ flash_sale_dang_bat }}</div>
+        <div class="muted">Sản phẩm đang chạy flash sale</div>
+      </div>
+      <div class="stat">
+        <div class="stat-k">Hàng sắp hết</div>
+        <div class="stat-v">{{ sap_het_hang }}</div>
+        <div class="muted">Sản phẩm còn từ 1 đến 5</div>
+      </div>
+      <div class="stat">
+        <div class="stat-k">Hết hàng</div>
+        <div class="stat-v">{{ het_hang }}</div>
+        <div class="muted">Cần nhập thêm kho</div>
+      </div>
+      <div class="stat">
+        <div class="stat-k">Nhà cung cấp</div>
+        <div class="stat-v">{{ tong_nha_cung_cap }}</div>
+        <div class="muted">Đối tác đang quản lý</div>
+      </div>
+      <div class="stat">
+        <div class="stat-k">Phiếu nhập nháp</div>
+        <div class="stat-v">{{ phieu_nhap_cho }}</div>
+        <div class="muted">Chờ nhập kho</div>
+      </div>
+      <div class="stat">
+        <div class="stat-k">Phiếu đã nhập</div>
+        <div class="stat-v">{{ phieu_nhap_nhap }}</div>
+        <div class="muted">Lô hàng tạo ra: {{ phieu_nhap_nhap_nhap }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:18px;margin-top:14px;">
+    <h3 style="margin:0 0 10px;">Biểu đồ nhanh</h3>
+
+    {{ status_labels|json_script:"statusLabels" }}
+    {{ status_counts|json_script:"statusCounts" }}
+    {{ daily_labels|json_script:"dailyLabels" }}
+    {{ daily_orders|json_script:"dailyOrders" }}
+    {{ daily_revenue|json_script:"dailyRevenue" }}
+
+    <div class="grid-2" style="gap:14px;">
+      <div>
+        <div class="muted" style="margin-bottom:8px;">Đơn theo trạng thái</div>
+        <canvas id="chartStatus" height="140"></canvas>
+      </div>
+      <div>
+        <div class="muted" style="margin-bottom:8px;">7 ngày gần nhất (đơn)</div>
+        <canvas id="chartDaily" height="140"></canvas>
+      </div>
+    </div>
+
+    <div class="muted" style="margin-top:14px;margin-bottom:8px;">7 ngày gần nhất (doanh thu)</div>
+    <canvas id="chartRevenue" height="110"></canvas>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      const statusLabels = JSON.parse(document.getElementById('statusLabels').textContent);
+      const statusCounts = JSON.parse(document.getElementById('statusCounts').textContent);
+      const dailyLabels  = JSON.parse(document.getElementById('dailyLabels').textContent);
+      const dailyOrders  = JSON.parse(document.getElementById('dailyOrders').textContent);
+      const dailyRevenue = JSON.parse(document.getElementById('dailyRevenue').textContent);
+
+      new Chart(document.getElementById('chartStatus'), {
+        type: 'doughnut',
+        data: { labels: statusLabels, datasets: [{ data: statusCounts }] },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+      });
+
+      new Chart(document.getElementById('chartDaily'), {
+        type: 'bar',
+        data: { labels: dailyLabels, datasets: [{ label: 'Số đơn', data: dailyOrders }] },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+      });
+
+      new Chart(document.getElementById('chartRevenue'), {
+        type: 'line',
+        data: { labels: dailyLabels, datasets: [{ label: 'Doanh thu (VND)', data: dailyRevenue, tension: 0.25 }] },
+        options: { responsive: true }
+      });
+    </script>
+  </div>
+
+  <div class="card" style="padding:18px;margin-top:14px;">
+    <h3 style="margin:0 0 10px;">Top sản phẩm theo số đơn</h3>
+    <table style="width:100%;border-collapse:collapse;">
+      <tr style="background:#faf7ef;">
+        <th style="padding:10px;text-align:left;">Sản phẩm</th>
+        <th style="padding:10px;text-align:left;">Số đơn</th>
+      </tr>
+      {% for r in top_products %}
+      <tr>
+        <td style="padding:10px;border-top:1px solid #eee;">{{ r.san_pham__ten }}</td>
+        <td style="padding:10px;border-top:1px solid #eee;"><b>{{ r.c }}</b></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="2" style="padding:10px;color:#666;">Chưa có dữ liệu.</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <div class="card" style="padding:18px;margin-top:14px;">
+    <h3 style="margin:0 0 10px;">Lối tắt</h3>
+    <div class="row" style="gap:10px;flex-wrap:wrap;">
+      <a class="btn primary" href="{% url 'admin_sanpham_create' %}">+ Thêm sản phẩm</a>
+      <a class="btn" href="{% url 'admin_donhang_create' %}">+ Thêm đơn hàng</a>
+      <a class="btn" href="{% url 'admin_sanpham_list' %}">Danh sách sản phẩm</a>
+      <a class="btn" href="{% url 'admin_donhang_list' %}">Quản lý đơn hàng</a>
+      <a class="btn" href="{% url 'admin_user_list' %}">Quản lý users</a>
+      <a class="btn" href="{% url 'admin_topup_list' %}">Duyệt nạp tiền</a>
+      <a class="btn" href="{% url 'admin_inventory_list' %}">Quản lý kho</a>
+      <a class="btn" href="{% url 'admin_supplier_list' %}">Nhà cung cấp</a>
+      <a class="btn" href="{% url 'admin_receipt_list' %}">Phiếu nhập kho</a>
+      <a class="btn" href="{% url 'admin_batch_list' %}">Lô hàng nhập</a>
+    </div>
+  </div>
+{% endblock %}

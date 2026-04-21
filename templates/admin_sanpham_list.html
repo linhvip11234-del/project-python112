@@ -1,0 +1,102 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Sản phẩm{% endblock %}
+{% block admin_content %}
+  <div class="card" style="padding:18px;">
+    <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <h2 style="margin:0;">Sản phẩm</h2>
+      <a class="btn primary" href="{% url 'admin_sanpham_create' %}">+ Thêm</a>
+    </div>
+
+    <form method="get" class="filter-bar" style="margin-top:12px;">
+      <input class="input" name="q" value="{{ q }}" placeholder="Tìm theo tên...">
+      <select class="input" name="trang_thai">
+        <option value="">-- Tất cả trạng thái --</option>
+        {% for value, label in trang_thai_choices %}
+          <option value="{{ value }}" {% if trang_thai == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select class="input" name="sort">
+        {% for value, label in sort_choices %}
+          <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn" type="submit">Lọc</button>
+      <a class="btn" href="{% url 'admin_sanpham_list' %}">Reset</a>
+    </form>
+
+    <div class="table-wrap" style="margin-top:12px;">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Ảnh</th>
+            <th>Tên</th>
+            <th>Giá bán</th>
+            <th>Flash sale</th>
+            <th>Tồn kho</th>
+            <th>Trạng thái</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for sp in ds %}
+          <tr>
+            <td>{{ sp.id }}</td>
+            <td>
+              {% if sp.anh %}
+                <img src="{{ sp.anh.url }}" alt="" style="width:56px;height:56px;object-fit:cover;border-radius:12px;border:1px solid var(--line);">
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+            <td style="min-width:260px;">{{ sp.ten }}</td>
+            <td>
+              {% if sp.dang_flash_sale %}
+                <div><b>{{ sp.gia_hien_tai|vnd }}</b> VND</div>
+                <div class="muted" style="text-decoration:line-through;">{{ sp.gia|vnd }} VND</div>
+              {% elif sp.dang_giam_gia %}
+                <div><b>{{ sp.gia_hien_tai|vnd }}</b> VND</div>
+                <div class="muted" style="text-decoration:line-through;">{{ sp.gia|vnd }} VND</div>
+              {% else %}
+                <b>{{ sp.gia|vnd }}</b> VND
+              {% endif %}
+            </td>
+            <td>
+              {% if sp.dang_flash_sale %}
+                <span class="status" style="background:#ffefef;color:#c62828;border-color:#ffcaca;">Đang chạy</span>
+                <div class="muted">Đến {{ sp.flash_sale_end|date:"H:i d/m/Y" }}</div>
+              {% elif sp.sap_dien_ra_flash_sale %}
+                <span class="status">Sắp diễn ra</span>
+              {% elif sp.co_flash_sale_cai_dat %}
+                <span class="status">Đã kết thúc</span>
+              {% else %}
+                <span class="muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              <b>{{ sp.ton_kho }}</b>
+              {% if sp.ton_kho <= 0 %}
+                <div><span class="status" style="background:#ffefef;color:#c62828;border-color:#ffcaca;">Hết hàng</span></div>
+              {% elif sp.ton_kho <= 5 %}
+                <div><span class="status" style="background:#fff8e1;color:#b26a00;border-color:#ffe0a3;">Sắp hết</span></div>
+              {% else %}
+                <div class="muted">Ổn định</div>
+              {% endif %}
+            </td>
+            <td><span class="status status-{{ sp.trang_thai|lower }}">{{ sp.get_trang_thai_display }}</span></td>
+            <td style="white-space:nowrap;">
+              <a class="btn" href="{% url 'admin_sanpham_detail' sp.id %}">Xem</a>
+              <a class="btn" href="{% url 'admin_sanpham_edit' sp.id %}">Sửa</a>
+              <a class="btn" href="{% url 'admin_inventory_detail' sp.id %}">Kho</a>
+              <a class="btn danger" href="{% url 'admin_sanpham_delete' sp.id %}">Xoá</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="8" class="muted">Không có sản phẩm.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Chi tiết nạp tiền{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;">
+  <div class="row" style="justify-content:space-between;gap:16px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0 0 8px;">Yêu cầu nạp tiền #{{ topup.id }}</h2>
+      <p><b>User:</b> {{ topup.wallet.user.username }}</p>
+      <p><b>Mã tham chiếu:</b> {{ topup.reference }}</p>
+      <p><b>Nội dung chuyển khoản:</b> {{ topup.transfer_note }}</p>
+      <p><b>Số tiền:</b> {{ topup.amount|vnd }} VND</p>
+      <p><b>Trạng thái:</b> <span class="status status-{{ topup.status }}">{{ topup.get_status_display }}</span></p>
+      <p><b>Ngân hàng:</b> {{ bank_info.bank_name }} - {{ bank_info.account_no }}</p>
+      <p><b>Tạo lúc:</b> {{ topup.created_at }}</p>
+      {% if topup.paid_at %}<p><b>Callback lúc:</b> {{ topup.paid_at }}</p>{% endif %}
+      {% if topup.approved_at %}<p><b>Cộng ví lúc:</b> {{ topup.approved_at }}</p>{% endif %}
+      {% if topup.approved_by %}<p><b>Người duyệt:</b> {{ topup.approved_by.username }}</p>{% endif %}
+      {% if topup.rejected_reason %}<p><b>Lý do từ chối:</b> {{ topup.rejected_reason }}</p>{% endif %}
+    </div>
+    <div style="text-align:center;">
+      <img src="{% url 'admin_topup_qr' topup.id %}" alt="QR nạp tiền" style="width:240px;max-width:100%;border:1px solid #eee;border-radius:16px;background:#fff;padding:12px;">
+      <div class="muted" style="margin-top:8px;">QR VietQR của giao dịch này</div>
+    </div>
+  </div>
+
+  <div class="row" style="gap:10px;flex-wrap:wrap;align-items:flex-start;margin-top:12px;">
+    <a class="btn" href="{% url 'admin_topup_list' %}">Quay lại</a>
+    {% if topup.status != 'approved' and topup.status != 'rejected' %}
+    <form method="post" action="{% url 'admin_topup_approve' topup.id %}">
+      {% csrf_token %}
+      <button class="btn primary" type="submit">Duyệt và cộng ví</button>
+    </form>
+    <form method="post" action="{% url 'admin_topup_reject' topup.id %}" style="display:flex;gap:8px;flex-wrap:wrap;">
+      {% csrf_token %}
+      <input class="input" type="text" name="reason" placeholder="Lý do từ chối (tuỳ chọn)">
+      <button class="btn danger" type="submit">Từ chối</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

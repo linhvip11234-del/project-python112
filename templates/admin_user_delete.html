@@ -1,0 +1,16 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - Xoá user{% endblock %}
+{% block admin_content %}
+  <div class="card" style="padding:18px;max-width:720px;">
+    <h2 style="margin:0 0 10px;">Xoá user</h2>
+    <p>Bạn chắc chắn muốn xoá user:</p>
+    <p><b>{{ u.username }}</b> {% if u.email %}({{ u.email }}){% endif %}</p>
+    <p class="muted">Hệ thống sẽ chặn xoá nếu đây là tài khoản đang đăng nhập hoặc user đã phát sinh đơn hàng.</p>
+
+    <form method="post" style="display:flex;gap:10px;flex-wrap:wrap;">
+      {% csrf_token %}
+      <button class="btn danger" type="submit">Xoá</button>
+      <a class="btn" href="{% url 'admin_user_list' %}">Huỷ</a>
+    </form>
+  </div>
+{% endblock %}

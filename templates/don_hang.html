@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% load tien %}
+{% block title %}Đơn hàng{% endblock %}
+{% block content %}
+<h2 style="font-family:'Cormorant Garamond',serif;margin:18px 0 10px;">Đơn hàng của tôi</h2>
+
+<form method="get" class="filter-bar" style="margin-bottom:14px;">
+  <input class="input" name="q" value="{{ q }}" placeholder="Tìm sản phẩm / họ tên / SĐT / địa chỉ / mã thanh toán">
+  <select class="input" name="trang_thai">
+    <option value="">-- Tất cả trạng thái --</option>
+    {% for k,v in trang_thai_choices %}
+      <option value="{{ k }}" {% if trang_thai == k %}selected{% endif %}>{{ v }}</option>
+    {% endfor %}
+  </select>
+  <select class="input" name="sort">
+    {% for value, label in sort_choices %}
+      <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn" type="submit">Lọc</button>
+  <a class="btn" href="{% url 'ds_don' %}">Reset</a>
+</form>
+
+<div class="table-wrap">
+  <table class="tbl">
+    <tr style="background:#faf7ef;">
+      <th>ID</th>
+      <th>Sản phẩm</th>
+      <th>SL</th>
+      <th>Tổng</th>
+      <th>Giao hàng</th>
+      <th>Thanh toán</th>
+      <th>Trạng thái</th>
+      <th>Lịch sử</th>
+      <th>Thao tác</th>
+    </tr>
+    {% for d in ds %}
+    <tr>
+      <td>#{{ d.id }}</td>
+      <td>{{ d.san_pham.ten }}</td>
+      <td>{{ d.so_luong }}</td>
+      <td><div><b>{{ d.tong_tien|vnd }} VND</b></div>{% if d.discount_amount %}<div class="muted">Gốc: {{ d.tong_tien_goc|vnd }} VND</div><div class="muted">Giảm: -{{ d.discount_amount|vnd }} VND{% if d.voucher_code %} ({{ d.voucher_code }}){% endif %}</div>{% endif %}</td>
+      <td>
+        <div><b>{{ d.ho_ten }}</b> • {{ d.sdt }}</div>
+        <div class="muted">{{ d.dia_chi }}</div>
+        {% if d.ghi_chu %}<div class="muted">Ghi chú: {{ d.ghi_chu }}</div>{% endif %}
+      </td>
+      <td>
+        <div><b>{{ d.get_phuong_thuc_tt_display }}</b></div>
+        {% if d.da_thanh_toan %}
+          <div class="status status-approved" style="display:inline-flex;margin-top:6px;">Đã thanh toán</div>
+          {% if d.thanh_toan_luc %}<div class="muted">{{ d.thanh_toan_luc|date:"d/m/Y H:i" }}</div>{% endif %}
+        {% else %}
+          <div class="status status-pending" style="display:inline-flex;margin-top:6px;">Chưa thanh toán</div>
+        {% endif %}
+        {% if d.ma_thanh_toan %}<div class="muted">Mã TT: {{ d.ma_thanh_toan }}</div>{% endif %}
+        {% if d.da_hoan_tien %}<div class="muted">Đã hoàn tiền vào ví</div>{% endif %}
+      </td>
+      <td><span class="status status-{{ d.trang_thai|lower }}">{{ d.get_trang_thai_display }}</span></td>
+      <td>
+        {% with last_history=d.status_histories.last %}
+          {% if last_history %}
+            <div class="muted">{{ last_history.created_at|date:"d/m/Y H:i" }}</div>
+            <div class="muted">{{ last_history.new_status }}</div>
+          {% else %}-{% endif %}
+        {% endwith %}
+      </td>
+      <td>
+        {% if d.phuong_thuc_tt == 'ChuyenKhoan' and not d.da_thanh_toan %}
+          <a class="btn primary" href="{% url 'order_payment_qr' d.id %}">Thanh toán QR</a>
+        {% elif d.trang_thai == "Pending" %}
+          <a class="btn primary" href="{% url 'xac_nhan_don' d.id %}">Xác nhận</a>
+          <a class="btn" href="{% url 'huy_don' d.id %}">Huỷ</a>
+        {% elif d.trang_thai == "Confirmed" %}
+          <a class="btn" href="{% url 'huy_don' d.id %}">Huỷ</a>
+        {% else %}
+          -
+        {% endif %}
+      </td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="9" class="muted" style="padding:14px;">Chưa có đơn hàng nào.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

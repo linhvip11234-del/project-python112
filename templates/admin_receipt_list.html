@@ -1,0 +1,50 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Phiếu nhập kho{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;">
+  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0;">Phiếu nhập kho</h2>
+      <div class="muted">Nháp: <b>{{ draft_count }}</b> • Đã nhập: <b>{{ received_count }}</b></div>
+    </div>
+    <div class="row" style="gap:10px;flex-wrap:wrap;">
+      <a class="btn" href="{% url 'admin_batch_list' %}">Xem lô hàng</a>
+      <a class="btn primary" href="{% url 'admin_receipt_create' %}">+ Tạo phiếu nhập</a>
+    </div>
+  </div>
+
+  <form method="get" class="filter-bar" style="margin-top:12px;">
+    <input class="input" name="q" value="{{ q }}" placeholder="Tìm theo mã phiếu, sản phẩm, mã lô...">
+    <select class="input" name="status">
+      <option value="">-- Tất cả trạng thái --</option>
+      {% for value, label in status_choices %}
+        <option value="{{ value }}" {% if status == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <select class="input" name="sort">
+      {% for value, label in sort_choices %}
+        <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button class="btn" type="submit">Lọc</button>
+    <a class="btn" href="{% url 'admin_receipt_list' %}">Reset</a>
+  </form>
+
+  <div class="table-wrap" style="margin-top:12px;"><table class="tbl"><thead><tr><th>Mã phiếu</th><th>Nhà cung cấp</th><th>Số lượng</th><th>Giá trị</th><th>Trạng thái</th><th>Ngày tạo</th><th></th></tr></thead><tbody>
+    {% for receipt in ds %}
+      <tr>
+        <td><b>{{ receipt.code }}</b></td>
+        <td>{{ receipt.supplier.ten|default:"—" }}</td>
+        <td>{{ receipt.tong_so_luong }}</td>
+        <td>{{ receipt.tong_gia_tri|vnd }} VND</td>
+        <td>{{ receipt.get_status_display }}</td>
+        <td>{{ receipt.created_at|date:"H:i d/m/Y" }}</td>
+        <td><a class="btn" href="{% url 'admin_receipt_detail' receipt.id %}">Chi tiết</a></td>
+      </tr>
+    {% empty %}
+      <tr><td colspan="7" class="muted">Chưa có phiếu nhập kho.</td></tr>
+    {% endfor %}
+  </tbody></table></div>
+</div>
+{% endblock %}

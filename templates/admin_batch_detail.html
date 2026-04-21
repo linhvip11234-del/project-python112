@@ -1,0 +1,35 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Chi tiết lô hàng{% endblock %}
+{% block admin_content %}
+<div class="card" style="padding:18px;">
+  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0;">{{ batch.batch_code }}</h2>
+      <div class="muted">Lô hàng sản phẩm #{{ batch.san_pham.id }}</div>
+    </div>
+    <div class="row" style="gap:10px;flex-wrap:wrap;">
+      <a class="btn" href="{% url 'admin_batch_list' %}">Quay lại</a>
+      <a class="btn" href="{% url 'admin_receipt_detail' batch.receipt.id %}">Xem phiếu nhập</a>
+    </div>
+  </div>
+
+  <div class="grid-4" style="margin-top:14px;">
+    <div class="stat"><div class="stat-k">Sản phẩm</div><div class="stat-v" style="font-size:20px;">{{ batch.san_pham.ten }}</div></div>
+    <div class="stat"><div class="stat-k">Nhà cung cấp</div><div class="stat-v" style="font-size:20px;">{{ batch.supplier.ten|default:'—' }}</div></div>
+    <div class="stat"><div class="stat-k">SL nhập</div><div class="stat-v">{{ batch.so_luong_nhap }}</div></div>
+    <div class="stat"><div class="stat-k">SL còn lại</div><div class="stat-v">{{ batch.so_luong_con_lai }}</div></div>
+  </div>
+
+  <div class="grid-4" style="margin-top:14px;">
+    <div class="stat"><div class="stat-k">Đơn giá nhập</div><div class="stat-v" style="font-size:24px;">{{ batch.don_gia_nhap|vnd }}</div></div>
+        <div class="stat"><div class="stat-k">Ngày nhập</div><div class="stat-v" style="font-size:18px;">{{ batch.imported_at|date:"H:i d/m/Y" }}</div></div>
+    <div class="stat"><div class="stat-k">Người tạo</div><div class="stat-v" style="font-size:18px;">{{ batch.created_by.username|default:'—' }}</div></div>
+  </div>
+
+  <div style="margin-top:14px;">
+    <div><b>Phiếu nhập:</b> {{ batch.receipt.code }}</div>
+    <div><b>Ghi chú:</b> {{ batch.note|default:'—' }}</div>
+  </div>
+</div>
+{% endblock %}

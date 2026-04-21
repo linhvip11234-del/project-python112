@@ -1,0 +1,54 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - User{% endblock %}
+{% block admin_content %}
+  <div class="card" style="padding:18px;max-width:760px;">
+    {% if mode == "create" %}
+      <h2 style="margin:0 0 10px;">Thêm user</h2>
+    {% else %}
+      <h2 style="margin:0 0 10px;">Sửa user: {{ u.username }}</h2>
+    {% endif %}
+
+    {% if form.non_field_errors %}
+      <div class="alert" style="margin-bottom:12px;">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post" style="display:grid;gap:12px;">
+      {% csrf_token %}
+
+      <div>
+        <div class="label">Username</div>
+        {{ form.username }}
+        {{ form.username.errors }}
+      </div>
+      <div>
+        <div class="label">Email</div>
+        {{ form.email }}
+        {{ form.email.errors }}
+      </div>
+      <div>
+        <div class="label">{% if mode == "create" %}Password{% else %}Password mới (bỏ trống nếu không đổi){% endif %}</div>
+        {{ form.password }}
+        {{ form.password.errors }}
+      </div>
+      <div>
+        <div class="label">Vai trò</div>
+        {{ form.role }}
+        {{ form.role.errors }}
+      </div>
+      <label class="row" style="gap:8px;align-items:center;">
+        {{ form.is_active }}
+        <span>Active</span>
+      </label>
+      {{ form.is_active.errors }}
+
+      <div class="row" style="gap:10px;flex-wrap:wrap;">
+        <button class="btn primary" type="submit">Lưu</button>
+        <a class="btn" href="{% url 'admin_user_list' %}">Quay lại</a>
+      </div>
+    </form>
+
+    <div class="muted" style="margin-top:12px;font-size:13px;">
+      Vai trò hỗ trợ: <b>Guest</b> (không đăng nhập), <b>User</b>, <b>Admin</b>.
+    </div>
+  </div>
+{% endblock %}
