@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}Trang sức Demo{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'style.css' %}?v=palette1">
+  <link rel="stylesheet" href="{% static 'style.css' %}">
 </head>
 <body>
   <div class="topbar">
@@ -21,7 +21,7 @@
     <div class="container">
       <div class="row">
         <a class="brand" href="{% url 'home' %}">
-          <img class="logo-img" src="{% static 'logo-diamond.png' %}" alt="Logo Trang Sức">
+          <div class="logo"></div>
           <div>
             <div class="title">TRANG SỨC</div>
           </div>
