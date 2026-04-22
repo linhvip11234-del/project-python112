@@ -10,7 +10,7 @@ a{color:inherit;text-decoration:none;}
 .header{background:rgba(255,253,249,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(6px);}
 .header .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 0;}
 .brand{display:flex;align-items:center;gap:10px;}
-.logo-img{width:44px;height:44px;object-fit:contain;display:block;flex-shrink:0;}
+.logo-img{width:56px;height:56px;object-fit:contain;display:block;flex-shrink:0;border-radius:14px;}
 .brand .title{font-family:"Cormorant Garamond",serif;font-weight:700;letter-spacing:1px;font-size:20px;line-height:1.1;}
 .search{flex:1;max-width:540px;display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:#fff;box-shadow:0 8px 20px rgba(201,169,110,.06);}
 .search input{width:100%;border:0;padding:11px 14px;outline:none;background:transparent;}
