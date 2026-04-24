@@ -1,3 +1,12 @@
+"""
+Models chính của hệ thống web bán trang sức.
+Ghi chú nhanh:
+- SanPham: lưu thông tin sản phẩm, giá, tồn kho, flash sale
+- DonHang: lưu đơn mua hàng của khách
+- Voucher: mã giảm giá
+- Wallet / WalletTransaction / WalletTopUpRequest: ví điện tử
+- NhaCungCap / PhieuNhapKho / InventoryBatch: nghiệp vụ nhập kho
+"""
 from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.models import User
 from django.db import models
@@ -16,6 +25,7 @@ SECURITY_QUESTION_CHOICES = [
 SECURITY_QUESTION_MAP = dict(SECURITY_QUESTION_CHOICES)
 
 
+# Model sản phẩm: trung tâm của nghiệp vụ bán hàng
 class SanPham(models.Model):
     """Bảng sản phẩm chính."""
 
@@ -159,6 +169,7 @@ class UserSecurityProfile(models.Model):
         return SECURITY_QUESTION_MAP.get(self.question_2, self.question_2)
 
 
+# Model ví điện tử của người dùng
 class Wallet(models.Model):
     """Ví điện tử cho mỗi người dùng."""
 
@@ -170,6 +181,7 @@ class Wallet(models.Model):
         return f"Ví - {self.user.username}"
 
 
+# Model voucher: lưu mã giảm giá và điều kiện áp dụng
 class Voucher(models.Model):
     DISCOUNT_TYPES = [
         ("percent", "Giảm theo %"),
@@ -209,6 +221,7 @@ class Voucher(models.Model):
         return True
 
 
+# Model đơn hàng: mỗi đơn hiện gắn trực tiếp với một sản phẩm + số lượng
 class DonHang(models.Model):
     """Bảng đơn hàng chính."""
 
@@ -328,6 +341,7 @@ class InventoryHistory(models.Model):
         return f"Kho {self.san_pham.ten}: {sign}{self.quantity_change}"
 
 
+# Model nhà cung cấp cho nghiệp vụ nhập kho
 class NhaCungCap(models.Model):
     ten = models.CharField(max_length=150)
     sdt = models.CharField(max_length=20, blank=True, default="")

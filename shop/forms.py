@@ -40,6 +40,7 @@ class BaseStyledForm(forms.Form):
             field.widget.attrs["class"] = f"input {css}".strip()
 
 
+# Form đăng ký tài khoản khách hàng
 class RegistrationForm(BaseStyledForm):
     username = forms.CharField(max_length=150, label="Tên đăng nhập")
     email = forms.EmailField(required=False, label="Email")
@@ -97,6 +98,7 @@ class RegistrationForm(BaseStyledForm):
         return cleaned_data
 
 
+# Form quản trị sản phẩm
 class SanPhamForm(forms.ModelForm):
     """Form cho CRUD sản phẩm, có validate ảnh upload."""
 
@@ -207,6 +209,7 @@ class SanPhamForm(forms.ModelForm):
         return anh
 
 
+# Form nhập thông tin đặt hàng / người nhận
 class DatHangForm(BaseStyledForm):
     """Form checkout cho người dùng đặt hàng."""
 
@@ -319,6 +322,7 @@ class AdminDonHangForm(forms.ModelForm):
         return order
 
 
+# Form quản trị voucher
 class VoucherAdminForm(forms.ModelForm):
     class Meta:
         model = Voucher
