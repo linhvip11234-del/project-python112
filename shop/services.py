@@ -527,7 +527,6 @@ def validate_voucher(*, code: str, subtotal: int) -> Voucher | None:
     return voucher
 
 
-# Tính toán tổng tiền checkout: giá gốc, giảm giá, tổng cuối
 def build_checkout_pricing(*, subtotal: int, voucher_code: str = "") -> dict:
     subtotal = max(int(subtotal or 0), 0)
     voucher = validate_voucher(code=voucher_code, subtotal=subtotal) if voucher_code else None
@@ -560,7 +559,6 @@ def _allocate_discount(total_discount: int, amounts: list[int]) -> list[int]:
 
 
 @transaction.atomic
-# Tạo đơn hàng từ luồng mua ngay / checkout đơn lẻ
 def create_order_from_checkout(*, user: User, product: SanPham, cleaned_data: dict) -> DonHang:
     so_luong = int(cleaned_data["so_luong"])
     product = SanPham.objects.select_for_update().get(pk=product.pk)
@@ -622,7 +620,6 @@ def create_order_from_checkout(*, user: User, product: SanPham, cleaned_data: di
 
 
 @transaction.atomic
-# Tạo nhiều đơn hàng từ giỏ hàng
 def create_orders_from_cart(*, user: User, cleaned_data: dict) -> list[DonHang]:
     items = list(get_cart_items(user).select_for_update())
     for item in items:
@@ -731,7 +728,6 @@ def send_order_status_email(*, order: DonHang, old_status: str, new_status: str)
 
 
 @transaction.atomic
-# Cập nhật trạng thái đơn hàng theo role user/admin
 def update_order_status(*, order: DonHang, new_status: str, actor_role: str, actor: User | None = None) -> tuple[bool, str]:
     valid_codes = {code for code, _ in DonHang.TRANG_THAI}
     if new_status not in valid_codes:
@@ -814,7 +810,6 @@ def make_receipt_code() -> str:
 
 
 @transaction.atomic
-# Tạo phiếu nhập kho
 def create_purchase_receipt(*, supplier: NhaCungCap | None, created_by: User | None, note: str = "", items: list[dict] | None = None) -> PhieuNhapKho:
     items = items or []
     if not items:

@@ -1,12 +1,3 @@
-"""
-Views điều khiển luồng giao diện của website.
-Các nhóm view chính:
-- Auth: đăng ký, đăng nhập, quên mật khẩu
-- Catalog: trang chủ, danh sách, chi tiết sản phẩm
-- Cart / Checkout: giỏ hàng, đặt hàng, thanh toán
-- Wallet: ví điện tử, nạp ví
-- Admin: dashboard, quản lý sản phẩm, đơn hàng, voucher, kho
-"""
 import datetime as dt
 import io
 import random
@@ -326,7 +317,6 @@ def _build_checkout_context(*, user, form, items, source: str, product=None):
     }
 
 
-# Trang chủ: hiển thị banner, flash sale và danh sách sản phẩm
 def home(request):
     seed_sample_products()
     seed_sample_vouchers()
@@ -396,7 +386,6 @@ def flash_sale_products(request):
     })
 
 
-# Trang chi tiết sản phẩm và đánh giá
 def chi_tiet_san_pham(request, sp_id):
     seed_sample_products()
     seed_sample_vouchers()
@@ -669,7 +658,6 @@ def add_to_cart(request, sp_id):
 
 
 @login_required
-# Xem giỏ hàng hiện tại của người dùng
 def gio_hang(request):
     seed_sample_products()
     seed_sample_vouchers()
@@ -723,7 +711,6 @@ def xoa_toan_bo_gio_hang(request):
 
 
 @login_required
-# Tạo đơn hàng từ nút mua ngay hoặc từ giỏ hàng
 def dat_hang(request, san_pham_id):
     seed_sample_products()
     seed_sample_vouchers()
@@ -806,7 +793,6 @@ def thanh_toan_gio_hang(request):
 
 
 @login_required
-# Trang ví điện tử: số dư, lịch sử giao dịch, nạp tiền
 def wallet_view(request):
     wallet = get_or_create_wallet(request.user)
     transactions = WalletTransaction.objects.filter(wallet=wallet).select_related("order").order_by("-created_at", "-id")

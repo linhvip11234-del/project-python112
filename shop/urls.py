@@ -1,12 +1,7 @@
-"""
-Khai báo URL của app shop.
-Tại đây gom toàn bộ route phía khách hàng, admin và API.
-"""
 from django.urls import path
 
 from . import api_views, views
 
-# Danh sách route của app shop
 urlpatterns = [
     path("api/health/", api_views.ApiHealthView.as_view(), name="api_health"),
     path("api/products/", api_views.ProductListApiView.as_view(), name="api_products"),
