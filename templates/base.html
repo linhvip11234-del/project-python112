@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}Trang sức Demo{% endblock %}</title>
-  <link rel="stylesheet" href="{% static 'style.css' %}">
+  <link rel="stylesheet" href="{% static 'style.css' %}?v=logo2">
 </head>
 <body>
   <div class="topbar">
@@ -21,7 +21,7 @@
     <div class="container">
       <div class="row">
         <a class="brand" href="{% url 'home' %}">
-          <div class="logo"></div>
+          <img class="logo-img" src="{% static 'logo-diamond.png' %}" alt="Logo Trang Sức">
           <div>
             <div class="title">TRANG SỨC</div>
           </div>
@@ -34,12 +34,6 @@
 
         <div class="actions">
           {% if user.is_authenticated %}
-            <span class="badge">Xin chào: <b>{{ user.username }}</b></span>
-            {% if user.is_staff %}
-              <span class="badge role-admin">Vai trò: Admin</span>
-            {% else %}
-              <span class="badge role-user">Vai trò: User</span>
-            {% endif %}
             <a class="btn" href="{% url 'gio_hang' %}">Giỏ hàng{% if cart_count %} ({{ cart_count }}){% endif %}</a>
             <a class="btn" href="{% url 'ds_don' %}">Đơn hàng</a>
             <a class="btn" href="{% url 'wallet' %}">Ví điện tử</a>
@@ -48,11 +42,10 @@
             {% endif %}
             <a class="btn" href="{% url 'dang_xuat' %}">Đăng xuất</a>
           {% else %}
-            <span class="badge role-guest">Vai trò: Guest</span>
             <a class="btn" href="{% url 'dang_ky' %}">Đăng ký</a>
             <a class="btn primary" href="{% url 'dang_nhap' %}">Đăng nhập</a>
           {% endif %}
-                  </div>
+        </div>
       </div>
     </div>
   </div>
