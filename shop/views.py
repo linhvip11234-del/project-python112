@@ -90,6 +90,7 @@ from .services import (
 PASSWORD_RESET_SESSION_KEY = "password_reset_otp"
 PASSWORD_RESET_USER_SESSION_KEY = "password_reset_user"
 PASSWORD_RESET_OTP_EXPIRE_SECONDS = 300
+<<<<<<< HEAD
 REVIEW_POPUP_SESSION_KEY = "review_popup_order_ids"
 
 
@@ -122,6 +123,8 @@ def _pop_review_popup_orders(request):
     if values:
         request.session.modified = True
     return cleaned
+=======
+>>>>>>> 82894ea (sua thanh toan)
 
 
 >>>>>>> 50f3ab5 (sua danh gia 2)
@@ -369,6 +372,9 @@ def _build_checkout_context(*, user, form, items, source: str, product=None):
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 82894ea (sua thanh toan)
 def _redirect_to_review_popup(order_id: int):
     """Chuyển về trang đơn hàng và tự mở popup đánh giá cho đơn vừa đặt/thanh toán."""
     return redirect(f"{reverse('ds_don')}?review_order={order_id}")
@@ -376,8 +382,11 @@ def _redirect_to_review_popup(order_id: int):
 
 =======
 >>>>>>> a0d1d11 (sua thanh toan)
+<<<<<<< HEAD
 =======
 >>>>>>> 50f3ab5 (sua danh gia 2)
+=======
+>>>>>>> 82894ea (sua thanh toan)
 # Trang chủ: hiển thị banner, sản phẩm mới, sản phẩm giảm giá, flash sale và các bộ lọc catalog ngoài trang chủ.
 def home(request):
     seed_sample_products()
@@ -451,13 +460,19 @@ def flash_sale_products(request):
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 82894ea (sua thanh toan)
 # Chi tiết sản phẩm: hiển thị thông tin đầy đủ, ảnh phụ, đánh giá và xử lý gửi đánh giá mới từ khách hàng.
 =======
 # Chi tiết sản phẩm: hiển thị thông tin đầy đủ, ảnh phụ, đánh giá và chỉ cho khách đã mua viết đánh giá.
 >>>>>>> a0d1d11 (sua thanh toan)
+<<<<<<< HEAD
 =======
 # Chi tiết sản phẩm: hiển thị thông tin đầy đủ, ảnh phụ, đánh giá và chỉ cho khách đã mua viết đánh giá.
 >>>>>>> 50f3ab5 (sua danh gia 2)
+=======
+>>>>>>> 82894ea (sua thanh toan)
 def chi_tiet_san_pham(request, sp_id):
     seed_sample_products()
     seed_sample_vouchers()
@@ -471,12 +486,16 @@ def chi_tiet_san_pham(request, sp_id):
             nguoi_dat=request.user,
             san_pham=sp,
 <<<<<<< HEAD
+<<<<<<< HEAD
         ).exclude(trang_thai__in=["pending", "cancelled", "rejected"]).exists()
 =======
         ).filter(
             models.Q(da_thanh_toan=True) | models.Q(trang_thai__in=["Confirmed", "Approved"])
         ).exists()
 >>>>>>> 50f3ab5 (sua danh gia 2)
+=======
+        ).exclude(trang_thai__in=["pending", "cancelled", "rejected"]).exists()
+>>>>>>> 82894ea (sua thanh toan)
 
     if request.method == "POST":
         if not request.user.is_authenticated:
@@ -856,6 +875,7 @@ def dat_hang(request, san_pham_id):
                 messages.success(request, f"Đã tạo đơn #{don.id}. Vui lòng quét QR để thanh toán chuyển khoản.")
                 return redirect("order_payment_qr", don_id=don.id)
 <<<<<<< HEAD
+<<<<<<< HEAD
             messages.success(request, f"Đặt hàng thành công. Mã đơn của bạn là #{don.id}.")
             return _redirect_to_review_popup(don.id)
 =======
@@ -866,6 +886,10 @@ def dat_hang(request, san_pham_id):
                 messages.success(request, f"Đặt hàng thành công. Mã đơn của bạn là #{don.id}.")
             return redirect("ds_don")
 >>>>>>> 50f3ab5 (sua danh gia 2)
+=======
+            messages.success(request, f"Đặt hàng thành công. Mã đơn của bạn là #{don.id}.")
+            return _redirect_to_review_popup(don.id)
+>>>>>>> 82894ea (sua thanh toan)
 
     return render(request, "dat_hang.html", _build_checkout_context(user=request.user, form=form, items=item_preview, source="single", product=sp))
 
@@ -901,10 +925,14 @@ def thanh_toan_gio_hang(request):
             save_user_address(user=request.user, cleaned_data=form.cleaned_data)
             if orders and orders[0].phuong_thuc_tt == "ChuyenKhoan":
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 82894ea (sua thanh toan)
                 messages.success(request, f"Đã tạo {len(orders)} đơn hàng từ giỏ hàng. Hãy thanh toán đơn đầu tiên bằng QR.")
                 return redirect("order_payment_qr", don_id=orders[0].id)
             messages.success(request, f"Đã tạo thành công {len(orders)} đơn hàng từ giỏ hàng.")
             return _redirect_to_review_popup(orders[0].id)
+<<<<<<< HEAD
 =======
                 messages.success(request, f"Đã tạo {len(orders)} đơn hàng từ giỏ hàng. Hãy thanh toán lần lượt bằng QR cho từng đơn.")
             else:
@@ -916,6 +944,8 @@ def thanh_toan_gio_hang(request):
                     messages.success(request, f"Đã tạo thành công {len(orders)} đơn hàng từ giỏ hàng.")
             return redirect("ds_don")
 >>>>>>> 50f3ab5 (sua danh gia 2)
+=======
+>>>>>>> 82894ea (sua thanh toan)
 
     return render(request, "dat_hang.html", _build_checkout_context(user=request.user, form=form, items=checkout_items, source="cart"))
 
@@ -1026,6 +1056,9 @@ def ds_don(request):
     )
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 82894ea (sua thanh toan)
     review_order = None
     review_form = ProductReviewForm()
     review_order_id = request.GET.get("review_order")
@@ -1039,6 +1072,7 @@ def ds_don(request):
                     "title": existing_review.title,
                     "comment": existing_review.comment,
                 })
+<<<<<<< HEAD
 =======
     review_popup_order = None
     review_popup_form = None
@@ -1078,6 +1112,8 @@ def ds_don(request):
     else:
         review_popup_order = None
 >>>>>>> 50f3ab5 (sua danh gia 2)
+=======
+>>>>>>> 82894ea (sua thanh toan)
 
     return render(
         request,
@@ -1091,12 +1127,17 @@ def ds_don(request):
             "trang_thai_choices": DonHang.TRANG_THAI,
             "saved_addresses": get_saved_addresses(request.user),
 <<<<<<< HEAD
+<<<<<<< HEAD
             "review_order": review_order,
             "review_form": review_form,
 =======
             "review_popup_order": review_popup_order,
             "review_popup_form": review_popup_form,
 >>>>>>> 50f3ab5 (sua danh gia 2)
+=======
+            "review_order": review_order,
+            "review_form": review_form,
+>>>>>>> 82894ea (sua thanh toan)
         },
     )
 
@@ -1104,6 +1145,9 @@ def ds_don(request):
 @login_required
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 82894ea (sua thanh toan)
 def danh_gia_don_hang(request, don_id):
     """Nhận đánh giá nhanh từ popup trong trang đơn hàng."""
     don = get_object_or_404(DonHang.objects.select_related("san_pham"), id=don_id, nguoi_dat=request.user)
@@ -1132,8 +1176,11 @@ def danh_gia_don_hang(request, don_id):
 @login_required
 =======
 >>>>>>> a0d1d11 (sua thanh toan)
+<<<<<<< HEAD
 =======
 >>>>>>> 50f3ab5 (sua danh gia 2)
+=======
+>>>>>>> 82894ea (sua thanh toan)
 # Hiển thị QR chuyển khoản cho 1 đơn hàng chưa thanh toán.
 def order_payment_qr(request, don_id):
     don = get_object_or_404(DonHang.objects.select_related("nguoi_dat", "san_pham"), id=don_id, nguoi_dat=request.user)
@@ -1165,9 +1212,10 @@ def order_payment_qr_image(request, don_id):
 def order_payment_callback(request, don_id):
     if request.method != "POST":
         return redirect("ds_don")
-    don = get_object_or_404(DonHang.objects.select_related("nguoi_dat", "san_pham"), id=don_id, nguoi_dat=request.user)
+    don = get_object_or_404(DonHang.objects.select_related("nguoi_dat"), id=don_id, nguoi_dat=request.user)
     ok, message = mark_order_paid_by_bank(order=don)
     if ok:
+<<<<<<< HEAD
 <<<<<<< HEAD
         messages.success(request, message)
         return _redirect_to_review_popup(don.id)
@@ -1211,6 +1259,11 @@ def quick_review_order(request, don_id):
         },
     )
     messages.success(request, "Đã gửi đánh giá sản phẩm." if created else "Đã cập nhật đánh giá của bạn.")
+=======
+        messages.success(request, message)
+        return _redirect_to_review_popup(don.id)
+    messages.error(request, message)
+>>>>>>> 82894ea (sua thanh toan)
     return redirect("ds_don")
 
 
