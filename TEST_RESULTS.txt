@@ -1,4 +1,0 @@
-Added flash sale feature (model, views, templates, admin UI, tests).
-Ran: python manage.py migrate
-Ran: python manage.py check
-Ran: python manage.py test shop.tests.ShopFeatureTests
