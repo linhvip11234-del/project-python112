@@ -92,7 +92,7 @@
 
     <div class="card" style="padding:18px;flex:0 0 360px;max-width:100%;">
       <h3 style="margin-top:0;">Viết đánh giá</h3>
-      {% if user.is_authenticated %}
+      {% if user.is_authenticated and can_review %}
         <form method="post" style="display:grid;gap:12px;">
           {% csrf_token %}
           <div><div class="label">Số sao</div>{{ review_form.rating }}{{ review_form.rating.errors }}</div>
@@ -100,8 +100,10 @@
           <div><div class="label">Nội dung</div>{{ review_form.comment }}{{ review_form.comment.errors }}</div>
           <button class="btn primary" type="submit">Gửi đánh giá</button>
         </form>
+      {% elif user.is_authenticated %}
+        <div class="muted">Chỉ khách đã mua sản phẩm mới có thể viết đánh giá.</div>
       {% else %}
-        <div class="muted">Vui lòng đăng nhập để gửi đánh giá.</div>
+        <div class="muted">Vui lòng đăng nhập và mua sản phẩm để gửi đánh giá.</div>
       {% endif %}
     </div>
   </div>
