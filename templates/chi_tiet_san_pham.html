@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load tien %}
+{% block title %}{{ sp.ten }}{% endblock %}
+{% block content %}
+  <div class="section">
+    <h2>Chi tiết sản phẩm</h2>
+    <div class="hint">Ảnh nhiều góc, thông tin giá bán, tồn kho và đánh giá khách hàng.</div>
+  </div>
+
+  <div class="card" style="padding:18px;">
+    <div class="row" style="align-items:flex-start;gap:24px;flex-wrap:wrap;">
+      <div style="flex:0 0 360px;max-width:100%;">
+        <div style="background:#fff;border:1px solid var(--line);border-radius:24px;overflow:hidden;min-height:360px;display:flex;align-items:center;justify-content:center;">
+          {% if sp.anh %}<img src="{{ sp.anh.url }}" alt="{{ sp.ten }}" style="width:100%;height:100%;object-fit:cover;">{% else %}<div class="muted">Không có ảnh</div>{% endif %}
+        </div>
+        {% if gallery_images %}
+          <div class="row" style="gap:10px;flex-wrap:wrap;margin-top:12px;">
+            {% for img in gallery_images %}
+              <a href="{{ img.image.url }}" target="_blank" style="width:78px;height:78px;border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#fff;">
+                <img src="{{ img.image.url }}" alt="{{ img.caption|default:sp.ten }}" style="width:100%;height:100%;object-fit:cover;">
+              </a>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <div style="flex:1;min-width:280px;">
+        <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+          <div>
+            <h1 style="margin:0 0 8px;font-size:30px;line-height:1.35;">{{ sp.ten }}</h1>
+            <div class="muted">Mã sản phẩm: SP{{ sp.id|stringformat:"05d" }}</div>
+            <div class="muted" style="margin-top:8px;">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5 ({{ sp.review_count }} đánh giá)</div>
+          </div>
+          {% if sp.dang_flash_sale %}
+            <span class="status" style="background:#ffefef;color:#c62828;border-color:#ffcaca;">FLASH SALE</span>
+          {% elif sp.dang_giam_gia %}
+            <span class="status" style="background:#fff7e8;color:#9a5b00;border-color:#f3ddb2;">Đang giảm giá</span>
+          {% endif %}
+        </div>
+
+        <div style="margin:16px 0;">
+          {% if sp.dang_flash_sale or sp.dang_giam_gia %}
+            <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
+              <p class="price" style="margin:0;font-size:30px;">{{ sp.gia_hien_tai|vnd }} VND</p>
+              <span class="status" style="background:#fff1f1;color:#c62828;border-color:#f0c7c7;">-{{ sp.phan_tram_giam }}%</span>
+            </div>
+            <p class="muted" style="text-decoration:line-through;margin-top:6px;">{{ sp.gia|vnd }} VND</p>
+          {% else %}
+            <p class="price" style="font-size:30px;">{{ sp.gia|vnd }} VND</p>
+          {% endif %}
+          <div class="muted">Tồn kho: {{ sp.ton_kho }} • Trạng thái: {{ sp.get_trang_thai_display }}</div>
+          {% if sp.search_tags %}<div class="muted" style="margin-top:6px;">Tag tìm kiếm: {{ sp.search_tags }}</div>{% endif %}
+        </div>
+
+        <div style="padding:14px;border:1px solid var(--line);border-radius:18px;background:#fffaf7;margin-bottom:16px;">
+          <b>Mô tả</b>
+          <p style="margin:8px 0 0;line-height:1.7;">{{ sp.mo_ta|default:"Chưa có mô tả." }}</p>
+        </div>
+
+        <div class="row" style="gap:10px;flex-wrap:wrap;">
+          {% if user.is_authenticated and sp.co_the_dat_hang %}
+            <form method="post" action="{% url 'add_to_cart' sp.id %}" style="display:inline;">{% csrf_token %}<input type="hidden" name="next" value="{% url 'chi_tiet_san_pham' sp.id %}"><button class="btn" type="submit">Thêm vào giỏ</button></form>
+            <a class="btn primary" href="{% url 'dat_hang' sp.id %}">Mua ngay</a>
+          {% elif not user.is_authenticated %}
+            <a class="btn primary" href="{% url 'dang_nhap' %}">Đăng nhập để mua</a>
+          {% else %}
+            <span class="status" style="background:#ffefef;color:#c62828;border-color:#ffcaca;">Tạm hết hàng</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section"><h2>Đánh giá sản phẩm</h2></div>
+  <div class="row" style="align-items:flex-start;gap:20px;flex-wrap:wrap;">
+    <div class="card" style="padding:18px;flex:1;min-width:300px;">
+      <div class="muted" style="margin-bottom:12px;">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5 từ {{ sp.review_count }} đánh giá</div>
+      {% for review in reviews %}
+        <div style="padding:12px 0;border-top:1px solid var(--line);">
+          <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <b>{{ review.user.username }}</b>
+            <span class="muted">{{ review.created_at|date:"H:i d/m/Y" }}</span>
+          </div>
+          <div style="color:#d18a00;">{{ review.stars }}</div>
+          {% if review.title %}<div><b>{{ review.title }}</b></div>{% endif %}
+          <div class="muted">{{ review.comment|linebreaksbr }}</div>
+        </div>
+      {% empty %}
+        <div class="muted">Chưa có đánh giá nào cho sản phẩm này.</div>
+      {% endfor %}
+    </div>
+
+    <div class="card" style="padding:18px;flex:0 0 360px;max-width:100%;">
+      <h3 style="margin-top:0;">Viết đánh giá</h3>
+      {% if user.is_authenticated and can_review %}
+        <form method="post" style="display:grid;gap:12px;">
+          {% csrf_token %}
+          <div><div class="label">Số sao</div>{{ review_form.rating }}{{ review_form.rating.errors }}</div>
+          <div><div class="label">Tiêu đề</div>{{ review_form.title }}{{ review_form.title.errors }}</div>
+          <div><div class="label">Nội dung</div>{{ review_form.comment }}{{ review_form.comment.errors }}</div>
+          <button class="btn primary" type="submit">Gửi đánh giá</button>
+        </form>
+      {% elif user.is_authenticated %}
+        <div class="muted">Chỉ khách đã mua sản phẩm mới có thể viết đánh giá.</div>
+      {% else %}
+        <div class="muted">Vui lòng đăng nhập và mua sản phẩm để gửi đánh giá.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="section"><h2>Sản phẩm gợi ý</h2></div>
+  <div class="grid">
+    {% for item in san_pham_goi_y %}
+      <div class="card">
+        <div class="thumb">{% if item.anh %}<img src="{{ item.anh.url }}" alt="{{ item.ten }}" class="thumb-img">{% else %}JEWELRY{% endif %}</div>
+        <div class="body">
+          <p class="name">{{ item.ten }}</p>
+          <p class="muted">{{ item.rating_stars }} • {{ item.average_rating|floatformat:1 }}/5</p>
+          <a class="btn" href="{% url 'chi_tiet_san_pham' item.id %}">Xem chi tiết</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}
