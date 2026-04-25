@@ -405,13 +405,33 @@ def flash_sale_products(request):
     })
 
 
+<<<<<<< HEAD
 # Chi tiết sản phẩm: hiển thị thông tin đầy đủ, ảnh phụ, đánh giá và xử lý gửi đánh giá mới từ khách hàng.
+=======
+# Chi tiết sản phẩm: hiển thị thông tin đầy đủ, ảnh phụ, đánh giá và chỉ cho khách đã mua viết đánh giá.
+>>>>>>> 2c81230 (sua giao dien mua hang)
 def chi_tiet_san_pham(request, sp_id):
     seed_sample_products()
     seed_sample_vouchers()
     sp = get_object_or_404(_annotated_catalog_queryset(SanPham.objects.all()), id=sp_id)
 
-    if request.method == "POST" and request.user.is_authenticated:
+    can_review = False
+    existing_review = None
+    if request.user.is_authenticated:
+        existing_review = ProductReview.objects.filter(san_pham=sp, user=request.user).first()
+        can_review = DonHang.objects.filter(
+            nguoi_dat=request.user,
+            san_pham=sp,
+        ).exclude(trang_thai__in=["pending", "cancelled", "rejected"]).exists()
+
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            messages.error(request, "Vui lòng đăng nhập và mua sản phẩm để gửi đánh giá.")
+            return redirect("dang_nhap")
+        if not can_review:
+            messages.error(request, "Chỉ khách đã mua sản phẩm mới có thể viết đánh giá.")
+            return redirect("chi_tiet_san_pham", sp_id=sp.id)
+
         review_form = ProductReviewForm(request.POST)
         if review_form.is_valid():
             review, created = ProductReview.objects.update_or_create(
@@ -428,10 +448,8 @@ def chi_tiet_san_pham(request, sp_id):
             return redirect("chi_tiet_san_pham", sp_id=sp.id)
     else:
         initial = {}
-        if request.user.is_authenticated:
-            existing_review = ProductReview.objects.filter(san_pham=sp, user=request.user).first()
-            if existing_review:
-                initial = {"rating": existing_review.rating, "title": existing_review.title, "comment": existing_review.comment}
+        if existing_review:
+            initial = {"rating": existing_review.rating, "title": existing_review.title, "comment": existing_review.comment}
         review_form = ProductReviewForm(initial=initial)
 
     reviews = sp.reviews.filter(is_visible=True).select_related("user")
@@ -443,6 +461,7 @@ def chi_tiet_san_pham(request, sp_id):
         "gallery_images": gallery_images,
         "reviews": reviews,
         "review_form": review_form,
+        "can_review": can_review,
         "cart_count": cart_item_count(request.user),
         "now": timezone.now(),
     })

@@ -175,6 +175,7 @@
     </div>
     <div class="grid">
       {% for sp in flash_sale_products %}
+<<<<<<< HEAD
         <div class="card product-card flash-luxe-card">
           <div class="thumb flash-luxe-thumb">{% if sp.anh %}<img src="{{ sp.anh.url }}" alt="{{ sp.ten }}" class="thumb-img">{% endif %}
             <div class="flash-luxe-badges">
@@ -192,6 +193,24 @@
             <div class="muted flash-rating">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5 ({{ sp.review_count }} đánh giá)</div>
             <div class="flash-actions">
               <a class="btn flash-secondary" href="{% url 'chi_tiet_san_pham' sp.id %}">Chi tiết</a>
+=======
+        <div class="card product-card" style="border:1px solid #ffd9d9;">
+          <div class="thumb">{% if sp.anh %}<img src="{{ sp.anh.url }}" alt="{{ sp.ten }}" class="thumb-img">{% endif %}</div>
+          <div class="body">
+            <div class="row" style="justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+              <span class="status" style="background:#ffefef;color:#c62828;border-color:#ffcaca;">FLASH SALE</span>
+              <span class="muted">Đến {{ sp.flash_sale_end|date:"H:i d/m/Y" }}</span>
+            </div>
+            <p class="name product-name">{{ sp.ten }}</p>
+            <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
+              <p class="price" style="margin:0;">{{ sp.gia_hien_tai|vnd }} VND</p><span style="display:none;">{{ sp.gia_hien_tai|vnd_comma }}</span>
+              <span class="status" style="background:#fff1f1;color:#c62828;border-color:#f0c7c7;">-{{ sp.phan_tram_giam }}%</span>
+            </div>
+            <p class="muted" style="text-decoration:line-through;">{{ sp.gia|vnd }} VND</p>
+            <div class="muted product-rating">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5 ({{ sp.review_count }} đánh giá)</div>
+            <div class="row product-actions">
+              <a class="btn" href="{% url 'chi_tiet_san_pham' sp.id %}">Xem chi tiết</a>
+>>>>>>> 2c81230 (sua giao dien mua hang)
               {% if user.is_authenticated %}
                 <form method="post" action="{% url 'add_to_cart' sp.id %}">{% csrf_token %}<input type="hidden" name="next" value="{% url 'home' %}"><button class="btn flash-secondary" type="submit">Giỏ hàng</button></form>
                 <a class="btn primary flash-primary" href="{% url 'dat_hang' sp.id %}">Mua ngay</a>
