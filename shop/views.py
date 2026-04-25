@@ -1,3 +1,5 @@
+# views.py: chứa toàn bộ controller/view của website bán trang sức, gồm luồng khách hàng, thanh toán, ví điện tử và trang quản trị.
+
 import datetime as dt
 import io
 import random
@@ -90,6 +92,7 @@ PASSWORD_RESET_USER_SESSION_KEY = "password_reset_user"
 PASSWORD_RESET_OTP_EXPIRE_SECONDS = 300
 
 
+# Helper: ép tham số query string về kiểu int; nếu lỗi thì trả về giá trị mặc định.
 def _parse_int_param(value: str, default=None):
     value = (value or "").strip()
     if not value:
@@ -100,6 +103,7 @@ def _parse_int_param(value: str, default=None):
         return default
 
 
+# Helper: lọc danh sách sản phẩm theo giá, khuyến mãi, tồn kho và điểm đánh giá để phục vụ catalog/trang chủ.
 def _filter_products_for_catalog(products, *, min_price=None, max_price=None, sale_only=False, in_stock=False, min_rating=0):
     filtered = []
     for product in products:
@@ -118,6 +122,7 @@ def _filter_products_for_catalog(products, *, min_price=None, max_price=None, sa
     return filtered
 
 
+# Helper: lưu nhiều ảnh phụ cho 1 sản phẩm khi admin tạo hoặc sửa sản phẩm.
 def _save_gallery_images(product: SanPham, images):
     for index, image in enumerate(images or [], start=1):
         ProductImage.objects.create(
@@ -128,6 +133,7 @@ def _save_gallery_images(product: SanPham, images):
         )
 
 
+# Helper: annotate thêm điểm đánh giá trung bình và số lượt đánh giá cho queryset sản phẩm.
 def _annotated_catalog_queryset(queryset):
     return queryset.annotate(
         average_rating_value=Avg("reviews__rating", filter=models.Q(reviews__is_visible=True)),
@@ -135,6 +141,7 @@ def _annotated_catalog_queryset(queryset):
     )
 
 
+# Helper: ẩn bớt ký tự email khi hiển thị cho người dùng ở luồng quên mật khẩu.
 def _mask_email(email: str) -> str:
     email = (email or "").strip()
     if "@" not in email:
@@ -147,10 +154,12 @@ def _mask_email(email: str) -> str:
     return f"{masked}@{domain}"
 
 
+# Helper: sinh mã OTP 6 chữ số cho chức năng đặt lại mật khẩu.
 def _generate_otp() -> str:
     return f"{random.randint(0, 999999):06d}"
 
 
+# Helper: lưu thông tin OTP đặt lại mật khẩu vào session, kèm thời gian hết hạn.
 def _set_password_reset_session(request, *, user_id: int, otp: str, email: str):
     request.session[PASSWORD_RESET_SESSION_KEY] = {
         "user_id": user_id,
@@ -162,6 +171,7 @@ def _set_password_reset_session(request, *, user_id: int, otp: str, email: str):
     request.session.modified = True
 
 
+# Helper: đọc và kiểm tra session OTP; tự xóa nếu hết hạn hoặc sai định dạng.
 def _get_password_reset_session(request):
     data = request.session.get(PASSWORD_RESET_SESSION_KEY) or {}
     expires_at = data.get("expires_at")
@@ -180,6 +190,7 @@ def _get_password_reset_session(request):
     return data
 
 
+# Helper: xóa session OTP sau khi dùng xong hoặc khi cần hủy luồng đặt lại mật khẩu.
 def _clear_password_reset_session(request):
     request.session.pop(PASSWORD_RESET_SESSION_KEY, None)
     request.session.modified = True
@@ -187,11 +198,13 @@ def _clear_password_reset_session(request):
 
 
 
+# Helper: đánh dấu user đã xác minh thành công để cho phép nhập mật khẩu mới.
 def _set_password_reset_user_session(request, *, user_id: int):
     request.session[PASSWORD_RESET_USER_SESSION_KEY] = {"user_id": user_id}
     request.session.modified = True
 
 
+# Helper: lấy user đang được phép đặt lại mật khẩu từ session.
 def _get_password_reset_user(request):
     data = request.session.get(PASSWORD_RESET_USER_SESSION_KEY) or {}
     user_id = data.get("user_id")
@@ -200,11 +213,13 @@ def _get_password_reset_user(request):
     return User.objects.filter(id=user_id).first()
 
 
+# Helper: xóa session user của luồng đặt lại mật khẩu.
 def _clear_password_reset_user_session(request):
     request.session.pop(PASSWORD_RESET_USER_SESSION_KEY, None)
     request.session.modified = True
 
 
+# Helper: gửi OTP qua email cho người dùng để xác minh yêu cầu đặt lại mật khẩu.
 def _send_password_reset_otp(*, user: User, otp: str):
     subject = "OTP dat lai mat khau"
     message = (
@@ -263,6 +278,7 @@ TOPUP_SORTS = {
 }
 
 
+# Helper: tạo ảnh QR từ nội dung text/chuỗi thanh toán rồi trả về trực tiếp cho trình duyệt.
 def _render_qr_image(payload: str) -> HttpResponse:
     qr = qrcode.QRCode(version=1, box_size=8, border=2)
     qr.add_data(payload)
@@ -274,6 +290,7 @@ def _render_qr_image(payload: str) -> HttpResponse:
     return HttpResponse(buffer.getvalue(), content_type="image/png")
 
 
+# Helper: gom dữ liệu trang checkout (địa chỉ, tổng tiền, voucher, ngân hàng, ví...) dùng chung cho mua ngay và thanh toán giỏ hàng.
 def _build_checkout_context(*, user, form, items, source: str, product=None):
     items = list(items)
     subtotal = sum(item["subtotal"] for item in items)
@@ -317,6 +334,7 @@ def _build_checkout_context(*, user, form, items, source: str, product=None):
     }
 
 
+# Trang chủ: hiển thị banner, sản phẩm mới, sản phẩm giảm giá, flash sale và các bộ lọc catalog ngoài trang chủ.
 def home(request):
     seed_sample_products()
     seed_sample_vouchers()
@@ -367,6 +385,7 @@ def home(request):
     })
 
 
+# Danh sách flash sale: lọc và hiển thị riêng các sản phẩm đang trong chương trình flash sale.
 def flash_sale_products(request):
     seed_sample_products()
     seed_sample_vouchers()
@@ -386,12 +405,29 @@ def flash_sale_products(request):
     })
 
 
+# Chi tiết sản phẩm: hiển thị thông tin đầy đủ, ảnh phụ, đánh giá và chỉ cho khách đã mua viết đánh giá.
 def chi_tiet_san_pham(request, sp_id):
     seed_sample_products()
     seed_sample_vouchers()
     sp = get_object_or_404(_annotated_catalog_queryset(SanPham.objects.all()), id=sp_id)
 
-    if request.method == "POST" and request.user.is_authenticated:
+    can_review = False
+    existing_review = None
+    if request.user.is_authenticated:
+        existing_review = ProductReview.objects.filter(san_pham=sp, user=request.user).first()
+        can_review = DonHang.objects.filter(
+            nguoi_dat=request.user,
+            san_pham=sp,
+        ).exclude(trang_thai__in=["pending", "cancelled", "rejected"]).exists()
+
+    if request.method == "POST":
+        if not request.user.is_authenticated:
+            messages.error(request, "Vui lòng đăng nhập và mua sản phẩm để gửi đánh giá.")
+            return redirect("dang_nhap")
+        if not can_review:
+            messages.error(request, "Chỉ khách đã mua sản phẩm mới có thể viết đánh giá.")
+            return redirect("chi_tiet_san_pham", sp_id=sp.id)
+
         review_form = ProductReviewForm(request.POST)
         if review_form.is_valid():
             review, created = ProductReview.objects.update_or_create(
@@ -408,10 +444,8 @@ def chi_tiet_san_pham(request, sp_id):
             return redirect("chi_tiet_san_pham", sp_id=sp.id)
     else:
         initial = {}
-        if request.user.is_authenticated:
-            existing_review = ProductReview.objects.filter(san_pham=sp, user=request.user).first()
-            if existing_review:
-                initial = {"rating": existing_review.rating, "title": existing_review.title, "comment": existing_review.comment}
+        if existing_review:
+            initial = {"rating": existing_review.rating, "title": existing_review.title, "comment": existing_review.comment}
         review_form = ProductReviewForm(initial=initial)
 
     reviews = sp.reviews.filter(is_visible=True).select_related("user")
@@ -423,11 +457,13 @@ def chi_tiet_san_pham(request, sp_id):
         "gallery_images": gallery_images,
         "reviews": reviews,
         "review_form": review_form,
+        "can_review": can_review,
         "cart_count": cart_item_count(request.user),
         "now": timezone.now(),
     })
 
 
+# Đăng ký tài khoản khách hàng mới; kiểm tra form hợp lệ rồi tạo user trong hệ thống.
 def dang_ky(request):
     if request.user.is_authenticated:
         return redirect("home")
@@ -456,6 +492,7 @@ def dang_ky(request):
 
 
 
+# Đăng nhập: xác thực tài khoản và điều hướng theo vai trò người dùng.
 def dang_nhap(request):
     if request.user.is_authenticated:
         return redirect("home")
@@ -478,6 +515,7 @@ def dang_nhap(request):
 
 
 
+# Bước 1 quên mật khẩu: nhập username/email, kiểm tra tài khoản và chuẩn bị chọn phương thức khôi phục.
 def quen_mat_khau(request):
     if request.user.is_authenticated:
         return redirect("home")
@@ -503,6 +541,7 @@ def quen_mat_khau(request):
     return render(request, "quen_mat_khau.html", {"form": form})
 
 
+# Bước 2 quên mật khẩu: cho người dùng chọn khôi phục bằng email OTP hoặc câu hỏi bảo mật.
 def chon_phuong_thuc_khoi_phuc(request):
     if request.user.is_authenticated:
         return redirect("home")
@@ -547,6 +586,7 @@ def chon_phuong_thuc_khoi_phuc(request):
     })
 
 
+# Khôi phục mật khẩu bằng câu hỏi bảo mật: đối chiếu câu trả lời rồi cấp quyền đổi mật khẩu.
 def khoi_phuc_bang_cau_hoi_bao_mat(request):
     if request.user.is_authenticated:
         return redirect("home")
@@ -580,6 +620,7 @@ def khoi_phuc_bang_cau_hoi_bao_mat(request):
     })
 
 
+# Khôi phục mật khẩu bằng OTP: xác minh mã OTP và cho phép người dùng đặt mật khẩu mới.
 def dat_lai_mat_khau_otp(request):
     if request.user.is_authenticated:
         return redirect("home")
@@ -629,6 +670,7 @@ def dat_lai_mat_khau_otp(request):
     )
 
 
+# Đăng xuất khỏi hệ thống và quay về trang chủ.
 def dang_xuat(request):
     if request.user.is_authenticated:
         logout(request)
@@ -637,6 +679,7 @@ def dang_xuat(request):
 
 
 @login_required
+# Giỏ hàng: thêm 1 sản phẩm vào giỏ, có kiểm tra tồn kho và cộng dồn số lượng nếu sản phẩm đã tồn tại.
 def add_to_cart(request, sp_id):
     if request.method != "POST":
         return redirect("home")
@@ -658,6 +701,7 @@ def add_to_cart(request, sp_id):
 
 
 @login_required
+# Trang giỏ hàng: hiển thị toàn bộ item người dùng đã chọn cùng tổng tiền tạm tính.
 def gio_hang(request):
     seed_sample_products()
     seed_sample_vouchers()
@@ -678,6 +722,7 @@ def gio_hang(request):
 
 
 @login_required
+# Giỏ hàng: cập nhật số lượng 1 item, đồng thời kiểm tra giới hạn tồn kho.
 def cap_nhat_gio_hang(request, item_id):
     if request.method != "POST":
         return redirect("gio_hang")
@@ -692,6 +737,7 @@ def cap_nhat_gio_hang(request, item_id):
 
 
 @login_required
+# Giỏ hàng: xóa 1 sản phẩm khỏi giỏ.
 def xoa_khoi_gio(request, item_id):
     if request.method != "POST":
         return redirect("gio_hang")
@@ -702,6 +748,7 @@ def xoa_khoi_gio(request, item_id):
 
 
 @login_required
+# Giỏ hàng: xóa toàn bộ sản phẩm hiện có trong giỏ của người dùng.
 def xoa_toan_bo_gio_hang(request):
     if request.method != "POST":
         return redirect("gio_hang")
@@ -711,6 +758,7 @@ def xoa_toan_bo_gio_hang(request):
 
 
 @login_required
+# Checkout mua ngay: tạo đơn hàng từ 1 sản phẩm được mua trực tiếp tại trang chi tiết.
 def dat_hang(request, san_pham_id):
     seed_sample_products()
     seed_sample_vouchers()
@@ -756,6 +804,7 @@ def dat_hang(request, san_pham_id):
 
 
 @login_required
+# Checkout từ giỏ hàng: tạo đơn hàng từ các item trong giỏ của người dùng.
 def thanh_toan_gio_hang(request):
     seed_sample_products()
     seed_sample_vouchers()
@@ -793,6 +842,7 @@ def thanh_toan_gio_hang(request):
 
 
 @login_required
+# Ví điện tử: hiển thị số dư, lịch sử giao dịch và các thao tác liên quan đến ví.
 def wallet_view(request):
     wallet = get_or_create_wallet(request.user)
     transactions = WalletTransaction.objects.filter(wallet=wallet).select_related("order").order_by("-created_at", "-id")
@@ -810,6 +860,7 @@ def wallet_view(request):
 
 
 @login_required
+# Ví điện tử: tạo yêu cầu nạp tiền mới để chờ admin xác nhận.
 def wallet_deposit(request):
     if request.method != "POST":
         return redirect("wallet")
@@ -834,6 +885,7 @@ def wallet_deposit(request):
 
 
 @login_required
+# Chi tiết yêu cầu nạp ví: hiển thị trạng thái, số tiền, mã tham chiếu và thông tin chuyển khoản.
 def wallet_topup_detail(request, topup_id):
     topup = get_object_or_404(WalletTopUpRequest.objects.select_related("wallet__user", "approved_by"), id=topup_id)
     if topup.wallet.user != request.user and not request.user.is_staff:
@@ -852,6 +904,7 @@ def wallet_topup_detail(request, topup_id):
 
 
 @login_required
+# Sinh QR nạp ví cho người dùng quét nhanh khi chuyển khoản.
 def wallet_topup_qr(request, topup_id):
     topup = get_object_or_404(WalletTopUpRequest.objects.select_related("wallet__user"), id=topup_id)
     if topup.wallet.user != request.user and not request.user.is_staff:
@@ -860,6 +913,7 @@ def wallet_topup_qr(request, topup_id):
 
 
 @login_required
+# Callback/mô phỏng xác nhận đã chuyển khoản nạp ví để cập nhật trạng thái yêu cầu.
 def wallet_topup_callback(request, topup_id):
     if request.method != "POST":
         return redirect("wallet")
@@ -876,6 +930,7 @@ def wallet_topup_callback(request, topup_id):
 
 
 @login_required
+# Danh sách đơn hàng của khách: xem lịch sử mua, lọc theo trạng thái và tra cứu chi tiết.
 def ds_don(request):
     q = request.GET.get("q", "").strip()
     trang_thai = request.GET.get("trang_thai", "").strip()
@@ -907,6 +962,7 @@ def ds_don(request):
 
 
 @login_required
+# Hiển thị QR chuyển khoản cho 1 đơn hàng chưa thanh toán.
 def order_payment_qr(request, don_id):
     don = get_object_or_404(DonHang.objects.select_related("nguoi_dat", "san_pham"), id=don_id, nguoi_dat=request.user)
     if don.phuong_thuc_tt != "ChuyenKhoan":
@@ -924,6 +980,7 @@ def order_payment_qr(request, don_id):
 
 
 @login_required
+# Trả về ảnh QR của đơn hàng để nhúng trực tiếp lên giao diện.
 def order_payment_qr_image(request, don_id):
     don = get_object_or_404(DonHang.objects.select_related("nguoi_dat"), id=don_id, nguoi_dat=request.user)
     if don.phuong_thuc_tt != "ChuyenKhoan":
@@ -932,6 +989,7 @@ def order_payment_qr_image(request, don_id):
 
 
 @login_required
+# Callback/mô phỏng xác nhận đơn hàng đã được chuyển khoản thành công.
 def order_payment_callback(request, don_id):
     if request.method != "POST":
         return redirect("ds_don")
@@ -945,6 +1003,7 @@ def order_payment_callback(request, don_id):
 
 
 @login_required
+# Khách xác nhận đơn trong các trạng thái cho phép theo nghiệp vụ.
 def xac_nhan_don(request, don_id):
     don = get_object_or_404(DonHang, id=don_id, nguoi_dat=request.user)
     if don.phuong_thuc_tt == "ChuyenKhoan" and not don.da_thanh_toan:
@@ -959,6 +1018,7 @@ def xac_nhan_don(request, don_id):
 
 
 @login_required
+# Hủy đơn hàng: đổi trạng thái, hoàn tiền ví (nếu có) và cập nhật tồn kho theo service.
 def huy_don(request, don_id):
     don = get_object_or_404(DonHang, id=don_id, nguoi_dat=request.user)
     ok, message = update_order_status(order=don, new_status="Cancelled", actor_role="user", actor=request.user)
@@ -970,11 +1030,13 @@ def huy_don(request, don_id):
 
 
 @admin_required
+# Chuyển hướng nhanh từ route cũ sang danh sách đơn hàng admin mới.
 def ds_don_admin(request):
     return redirect("admin_donhang_list")
 
 
 @admin_required
+# Admin thao tác nhanh với đơn hàng: duyệt, từ chối hoặc đổi trạng thái theo action truyền vào.
 def duyet_don(request, don_id, hanh_dong):
     don = get_object_or_404(DonHang, id=don_id)
     new_status = "Approved" if hanh_dong == "approve" else "Rejected"
@@ -987,6 +1049,7 @@ def duyet_don(request, don_id, hanh_dong):
 
 
 @admin_required
+# Dashboard quản trị: tổng hợp số liệu đơn hàng, doanh thu, top sản phẩm và biểu đồ thống kê.
 def admin_dashboard(request):
     tong_sp = SanPham.objects.count()
     tong_sp_active = SanPham.objects.filter(trang_thai="active").count()
@@ -1060,6 +1123,7 @@ def admin_dashboard(request):
 
 
 @admin_required
+# Admin sản phẩm: danh sách sản phẩm có lọc, tìm kiếm và sắp xếp.
 def admin_sanpham_list(request):
     q = request.GET.get("q", "").strip()
     trang_thai = request.GET.get("trang_thai", "").strip()
@@ -1076,6 +1140,7 @@ def admin_sanpham_list(request):
 
 
 @admin_required
+# Admin sản phẩm: xem chi tiết 1 sản phẩm và các thông tin liên quan.
 def admin_sanpham_detail(request, sp_id):
     sp = get_object_or_404(_annotated_catalog_queryset(SanPham.objects.all()), id=sp_id)
     return render(request, "admin_sanpham_detail.html", {
@@ -1087,6 +1152,7 @@ def admin_sanpham_detail(request, sp_id):
 
 
 @admin_required
+# Admin sản phẩm: tạo mới sản phẩm, lưu ảnh chính và ảnh phụ.
 def admin_sanpham_create(request):
     form = SanPhamForm(request.POST or None, request.FILES or None)
     if request.method == "POST" and form.is_valid():
@@ -1099,6 +1165,7 @@ def admin_sanpham_create(request):
 
 
 @admin_required
+# Admin sản phẩm: chỉnh sửa thông tin sản phẩm hiện có.
 def admin_sanpham_edit(request, sp_id):
     sp = get_object_or_404(SanPham, id=sp_id)
     form = SanPhamForm(request.POST or None, request.FILES or None, instance=sp)
@@ -1115,6 +1182,7 @@ def admin_sanpham_edit(request, sp_id):
 
 
 @admin_required
+# Admin sản phẩm: xóa hoặc ngừng hoạt động sản phẩm tùy ràng buộc dữ liệu.
 def admin_sanpham_delete(request, sp_id):
     sp = get_object_or_404(SanPham, id=sp_id)
     if request.method == "POST":
@@ -1129,6 +1197,7 @@ def admin_sanpham_delete(request, sp_id):
 
 
 @admin_required
+# Admin kho: xem danh sách tồn kho sản phẩm kèm bộ lọc và tìm kiếm.
 def admin_inventory_list(request):
     q = request.GET.get("q", "").strip()
     stock_status = request.GET.get("stock_status", "").strip()
@@ -1166,6 +1235,7 @@ def admin_inventory_list(request):
 
 
 @admin_required
+# Admin kho: xem lịch sử biến động kho của 1 sản phẩm cụ thể.
 def admin_inventory_detail(request, sp_id):
     sp = get_object_or_404(SanPham, id=sp_id)
     histories = sp.inventory_histories.select_related("actor", "order")[:20]
@@ -1173,6 +1243,7 @@ def admin_inventory_detail(request, sp_id):
 
 
 @admin_required
+# Admin kho: điều chỉnh thủ công số lượng tồn và ghi log lịch sử kho.
 def admin_inventory_adjust(request, sp_id):
     sp = get_object_or_404(SanPham, id=sp_id)
     form = AdminInventoryAdjustForm(request.POST or None, initial={"action": "set", "quantity": sp.ton_kho})
@@ -1194,6 +1265,7 @@ def admin_inventory_adjust(request, sp_id):
 
 
 @admin_required
+# Admin nhà cung cấp: danh sách nhà cung cấp có lọc và sắp xếp.
 def admin_supplier_list(request):
     q = request.GET.get("q", "").strip()
     active = request.GET.get("active", "").strip()
@@ -1213,6 +1285,7 @@ def admin_supplier_list(request):
 
 
 @admin_required
+# Admin nhà cung cấp: tạo mới nhà cung cấp.
 def admin_supplier_create(request):
     form = SupplierForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -1223,6 +1296,7 @@ def admin_supplier_create(request):
 
 
 @admin_required
+# Admin nhà cung cấp: xem chi tiết thông tin 1 nhà cung cấp.
 def admin_supplier_detail(request, supplier_id):
     supplier = get_object_or_404(NhaCungCap, id=supplier_id)
     recent_receipts = supplier.purchase_receipts.all()[:10]
@@ -1231,6 +1305,7 @@ def admin_supplier_detail(request, supplier_id):
 
 
 @admin_required
+# Admin nhà cung cấp: chỉnh sửa thông tin nhà cung cấp.
 def admin_supplier_edit(request, supplier_id):
     supplier = get_object_or_404(NhaCungCap, id=supplier_id)
     form = SupplierForm(request.POST or None, instance=supplier)
@@ -1242,6 +1317,7 @@ def admin_supplier_edit(request, supplier_id):
 
 
 @admin_required
+# Admin nhà cung cấp: xóa nhà cung cấp nếu không vi phạm ràng buộc dữ liệu.
 def admin_supplier_delete(request, supplier_id):
     supplier = get_object_or_404(NhaCungCap, id=supplier_id)
     if request.method == "POST":
@@ -1252,6 +1328,7 @@ def admin_supplier_delete(request, supplier_id):
 
 
 @admin_required
+# Admin phiếu nhập: xem danh sách phiếu nhập kho và trạng thái nhập hàng.
 def admin_receipt_list(request):
     q = request.GET.get("q", "").strip()
     status = request.GET.get("status", "").strip()
@@ -1272,6 +1349,7 @@ def admin_receipt_list(request):
 
 
 @admin_required
+# Admin phiếu nhập: tạo phiếu nhập mới cùng nhiều dòng sản phẩm nhập kho.
 def admin_receipt_create(request):
     form = PurchaseReceiptForm(request.POST or None)
     item_formset = PurchaseReceiptItemFormSet(request.POST or None, prefix="items")
@@ -1316,6 +1394,7 @@ def admin_receipt_create(request):
 
 
 @admin_required
+# Admin phiếu nhập: xem chi tiết 1 phiếu nhập kho.
 def admin_receipt_detail(request, receipt_id):
     receipt = get_object_or_404(PhieuNhapKho.objects.select_related("supplier", "created_by"), id=receipt_id)
     items = receipt.items.select_related("san_pham")
@@ -1324,6 +1403,7 @@ def admin_receipt_detail(request, receipt_id):
 
 
 @admin_required
+# Admin phiếu nhập: xác nhận đã nhận hàng để cộng tồn kho và sinh lô hàng.
 def admin_receipt_receive(request, receipt_id):
     receipt = get_object_or_404(PhieuNhapKho, id=receipt_id)
     if request.method != "POST":
@@ -1337,6 +1417,7 @@ def admin_receipt_receive(request, receipt_id):
 
 
 @admin_required
+# Admin phiếu nhập: hủy phiếu nhập khi còn ở trạng thái cho phép.
 def admin_receipt_cancel(request, receipt_id):
     receipt = get_object_or_404(PhieuNhapKho, id=receipt_id)
     if request.method != "POST":
@@ -1350,6 +1431,7 @@ def admin_receipt_cancel(request, receipt_id):
 
 
 @admin_required
+# Admin lô hàng: xem danh sách các batch nhập kho để quản lý tồn theo lô.
 def admin_batch_list(request):
     q = request.GET.get("q", "").strip()
     sort = request.GET.get("sort", "newest").strip()
@@ -1366,12 +1448,14 @@ def admin_batch_list(request):
 
 
 @admin_required
+# Admin lô hàng: xem chi tiết 1 batch/lô hàng.
 def admin_batch_detail(request, batch_id):
     batch = get_object_or_404(InventoryBatch.objects.select_related("san_pham", "supplier", "receipt", "created_by"), id=batch_id)
     return render(request, "admin_batch_detail.html", {"batch": batch})
 
 
 @admin_required
+# Admin đơn hàng: danh sách đơn với bộ lọc, tìm kiếm, sắp xếp và phân trang logic trong service.
 def admin_donhang_list(request):
     trang_thai = request.GET.get("trang_thai", "").strip()
     q = request.GET.get("q", "").strip()
@@ -1398,12 +1482,14 @@ def admin_donhang_list(request):
 
 
 @admin_required
+# Admin đơn hàng: xem chi tiết 1 đơn hàng.
 def admin_donhang_detail(request, don_id):
     don = get_object_or_404(DonHang.objects.select_related("nguoi_dat", "san_pham").prefetch_related("status_histories__actor"), id=don_id)
     return render(request, "admin_donhang_detail.html", {"don": don, "allowed_statuses": get_allowed_statuses(don, actor_role="admin"), "status_histories": don.status_histories.all()})
 
 
 @admin_required
+# Admin đơn hàng: tạo thủ công 1 đơn mới từ trang quản trị.
 def admin_donhang_create(request):
     form = AdminDonHangForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -1414,6 +1500,7 @@ def admin_donhang_create(request):
 
 
 @admin_required
+# Admin đơn hàng: chỉnh sửa thông tin cơ bản của đơn hàng.
 def admin_donhang_edit(request, don_id):
     don = get_object_or_404(DonHang, id=don_id)
     form = AdminDonHangForm(request.POST or None, instance=don)
@@ -1425,6 +1512,7 @@ def admin_donhang_edit(request, don_id):
 
 
 @admin_required
+# Admin đơn hàng: xóa đơn hàng nếu được phép.
 def admin_donhang_delete(request, don_id):
     don = get_object_or_404(DonHang.objects.select_related("nguoi_dat", "san_pham"), id=don_id)
     if request.method == "POST":
@@ -1435,6 +1523,7 @@ def admin_donhang_delete(request, don_id):
 
 
 @admin_required
+# Admin đơn hàng: cập nhật trạng thái đơn bằng form quản trị.
 def admin_donhang_update(request, don_id):
     don = get_object_or_404(DonHang, id=don_id)
     if request.method == "POST":
@@ -1448,6 +1537,7 @@ def admin_donhang_update(request, don_id):
 
 
 @admin_required
+# Admin nạp ví: xem tất cả yêu cầu nạp tiền, lọc theo trạng thái và số tiền.
 def admin_topup_list(request):
     status = request.GET.get("status", "").strip()
     q = request.GET.get("q", "").strip()
@@ -1480,18 +1570,21 @@ def admin_topup_list(request):
 
 
 @admin_required
+# Admin nạp ví: xem chi tiết 1 yêu cầu nạp tiền.
 def admin_topup_detail(request, topup_id):
     topup = get_object_or_404(WalletTopUpRequest.objects.select_related("wallet__user", "approved_by"), id=topup_id)
     return render(request, "admin_topup_detail.html", {"topup": topup, "bank_info": get_bank_info()})
 
 
 @admin_required
+# Admin nạp ví: sinh QR chuyển khoản cho yêu cầu nạp cụ thể.
 def admin_topup_qr(request, topup_id):
     topup = get_object_or_404(WalletTopUpRequest, id=topup_id)
     return _render_qr_image(topup.qr_payload)
 
 
 @admin_required
+# Admin nạp ví: duyệt yêu cầu nạp tiền và cộng số dư ví cho khách.
 def admin_topup_approve(request, topup_id):
     if request.method != "POST":
         return redirect("admin_topup_detail", topup_id=topup_id)
@@ -1505,6 +1598,7 @@ def admin_topup_approve(request, topup_id):
 
 
 @admin_required
+# Admin nạp ví: từ chối yêu cầu nạp tiền.
 def admin_topup_reject(request, topup_id):
     if request.method != "POST":
         return redirect("admin_topup_detail", topup_id=topup_id)
@@ -1519,6 +1613,7 @@ def admin_topup_reject(request, topup_id):
 
 
 @admin_required
+# Admin người dùng: danh sách tài khoản hệ thống có lọc, tìm kiếm và thống kê theo vai trò.
 def admin_user_list(request):
     q = request.GET.get("q", "").strip()
     role = request.GET.get("role", "").strip()
@@ -1544,6 +1639,7 @@ def admin_user_list(request):
 
 
 @admin_required
+# Admin người dùng: tạo mới tài khoản người dùng từ trang quản trị.
 def admin_user_create(request):
     form = AdminUserForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -1554,6 +1650,7 @@ def admin_user_create(request):
 
 
 @admin_required
+# Admin người dùng: chỉnh sửa tài khoản, vai trò hoặc trạng thái hoạt động.
 def admin_user_edit(request, user_id):
     u = get_object_or_404(User, id=user_id)
     form = AdminUserForm(request.POST or None, instance=u)
@@ -1573,6 +1670,7 @@ def admin_user_edit(request, user_id):
 
 
 @admin_required
+# Admin người dùng: xóa tài khoản khi phù hợp nghiệp vụ.
 def admin_user_delete(request, user_id):
     u = get_object_or_404(User, id=user_id)
     if request.method == "POST":
@@ -1590,6 +1688,7 @@ def admin_user_delete(request, user_id):
 
 
 @admin_required
+# Admin voucher: danh sách mã giảm giá với lọc, sắp xếp và tìm kiếm.
 def admin_voucher_list(request):
     q = request.GET.get("q", "").strip()
     active = request.GET.get("active", "").strip()
@@ -1635,12 +1734,14 @@ def admin_voucher_list(request):
 
 
 @admin_required
+# Admin voucher: xem chi tiết 1 voucher.
 def admin_voucher_detail(request, voucher_id):
     voucher = get_object_or_404(Voucher, id=voucher_id)
     return render(request, "admin_voucher_detail.html", {"voucher": voucher})
 
 
 @admin_required
+# Admin voucher: tạo mới mã giảm giá.
 def admin_voucher_create(request):
     form = VoucherAdminForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
@@ -1651,6 +1752,7 @@ def admin_voucher_create(request):
 
 
 @admin_required
+# Admin voucher: chỉnh sửa thông tin voucher.
 def admin_voucher_edit(request, voucher_id):
     voucher = get_object_or_404(Voucher, id=voucher_id)
     form = VoucherAdminForm(request.POST or None, instance=voucher)
@@ -1662,6 +1764,7 @@ def admin_voucher_edit(request, voucher_id):
 
 
 @admin_required
+# Admin voucher: xóa voucher nếu không vi phạm ràng buộc.
 def admin_voucher_delete(request, voucher_id):
     voucher = get_object_or_404(Voucher, id=voucher_id)
     if request.method == "POST":
