@@ -28,6 +28,7 @@ urlpatterns = [
     path("gio-hang/thanh-toan/", views.thanh_toan_gio_hang, name="thanh_toan_gio_hang"),
     path("dat-hang/<int:san_pham_id>/", views.dat_hang, name="dat_hang"),
     path("don-hang/", views.ds_don, name="ds_don"),
+    path("don-hang/<int:don_id>/danh-gia/", views.danh_gia_don_hang, name="danh_gia_don_hang"),
     path("don-hang/<int:don_id>/thanh-toan-qr/", views.order_payment_qr, name="order_payment_qr"),
     path("don-hang/<int:don_id>/thanh-toan-qr/img/", views.order_payment_qr_image, name="order_payment_qr_image"),
     path("don-hang/<int:don_id>/thanh-toan-qr/callback/", views.order_payment_callback, name="order_payment_callback"),

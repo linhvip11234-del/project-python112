@@ -334,6 +334,11 @@ def _build_checkout_context(*, user, form, items, source: str, product=None):
     }
 
 
+def _redirect_to_review_popup(order_id: int):
+    """Chuyển về trang đơn hàng và tự mở popup đánh giá cho đơn vừa đặt/thanh toán."""
+    return redirect(f"{reverse('ds_don')}?review_order={order_id}")
+
+
 # Trang chủ: hiển thị banner, sản phẩm mới, sản phẩm giảm giá, flash sale và các bộ lọc catalog ngoài trang chủ.
 def home(request):
     seed_sample_products()
@@ -783,7 +788,7 @@ def dat_hang(request, san_pham_id):
                 messages.success(request, f"Đã tạo đơn #{don.id}. Vui lòng quét QR để thanh toán chuyển khoản.")
                 return redirect("order_payment_qr", don_id=don.id)
             messages.success(request, f"Đặt hàng thành công. Mã đơn của bạn là #{don.id}.")
-            return redirect("ds_don")
+            return _redirect_to_review_popup(don.id)
 
     return render(request, "dat_hang.html", _build_checkout_context(user=request.user, form=form, items=item_preview, source="single", product=sp))
 
@@ -818,10 +823,10 @@ def thanh_toan_gio_hang(request):
         else:
             save_user_address(user=request.user, cleaned_data=form.cleaned_data)
             if orders and orders[0].phuong_thuc_tt == "ChuyenKhoan":
-                messages.success(request, f"Đã tạo {len(orders)} đơn hàng từ giỏ hàng. Hãy thanh toán lần lượt bằng QR cho từng đơn.")
-            else:
-                messages.success(request, f"Đã tạo thành công {len(orders)} đơn hàng từ giỏ hàng.")
-            return redirect("ds_don")
+                messages.success(request, f"Đã tạo {len(orders)} đơn hàng từ giỏ hàng. Hãy thanh toán đơn đầu tiên bằng QR.")
+                return redirect("order_payment_qr", don_id=orders[0].id)
+            messages.success(request, f"Đã tạo thành công {len(orders)} đơn hàng từ giỏ hàng.")
+            return _redirect_to_review_popup(orders[0].id)
 
     return render(request, "dat_hang.html", _build_checkout_context(user=request.user, form=form, items=checkout_items, source="cart"))
 
@@ -931,6 +936,20 @@ def ds_don(request):
         sort=sort,
     )
 
+    review_order = None
+    review_form = ProductReviewForm()
+    review_order_id = request.GET.get("review_order")
+    if review_order_id:
+        review_order = DonHang.objects.filter(id=review_order_id, nguoi_dat=request.user).select_related("san_pham").first()
+        if review_order:
+            existing_review = ProductReview.objects.filter(san_pham=review_order.san_pham, user=request.user).first()
+            if existing_review:
+                review_form = ProductReviewForm(initial={
+                    "rating": existing_review.rating,
+                    "title": existing_review.title,
+                    "comment": existing_review.comment,
+                })
+
     return render(
         request,
         "don_hang.html",
@@ -942,8 +961,36 @@ def ds_don(request):
             "sort_choices": ORDER_SORT_CHOICES,
             "trang_thai_choices": DonHang.TRANG_THAI,
             "saved_addresses": get_saved_addresses(request.user),
+            "review_order": review_order,
+            "review_form": review_form,
         },
     )
+
+
+@login_required
+def danh_gia_don_hang(request, don_id):
+    """Nhận đánh giá nhanh từ popup trong trang đơn hàng."""
+    don = get_object_or_404(DonHang.objects.select_related("san_pham"), id=don_id, nguoi_dat=request.user)
+    if request.method != "POST":
+        return _redirect_to_review_popup(don.id)
+
+    form = ProductReviewForm(request.POST)
+    if form.is_valid():
+        review, created = ProductReview.objects.update_or_create(
+            san_pham=don.san_pham,
+            user=request.user,
+            defaults={
+                "rating": form.cleaned_data["rating"],
+                "title": form.cleaned_data.get("title", ""),
+                "comment": form.cleaned_data.get("comment", ""),
+                "is_visible": True,
+            },
+        )
+        messages.success(request, "Cảm ơn bạn đã đánh giá sản phẩm." if created else "Đã cập nhật đánh giá của bạn.")
+        return redirect("ds_don")
+
+    messages.error(request, "Vui lòng chọn số sao và nhập nội dung đánh giá.")
+    return _redirect_to_review_popup(don.id)
 
 
 @login_required
@@ -982,8 +1029,8 @@ def order_payment_callback(request, don_id):
     ok, message = mark_order_paid_by_bank(order=don)
     if ok:
         messages.success(request, message)
-    else:
-        messages.error(request, message)
+        return _redirect_to_review_popup(don.id)
+    messages.error(request, message)
     return redirect("ds_don")
 
 
