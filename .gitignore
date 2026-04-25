@@ -1,3 +1,7 @@
 __pycache__/
 *.pyc
+*.pyo
 .vs/
+.env
+venv/
+.venv/

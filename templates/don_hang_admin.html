@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% load tien %}
+{% block title %}Admin - Đơn hàng{% endblock %}
+{% block content %}
+<h2 style="font-family:'Cormorant Garamond',serif;margin:18px 0 10px;">Quản lý đơn hàng (Admin)</h2>
+<p style="color:#666;margin:0 0 12px;">Chỉ tài khoản <b>staff</b> mới vào được trang này. Demo duyệt/từ chối.</p>
+
+<table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e8e3d9;border-radius:14px;overflow:hidden;">
+  <tr style="background:#faf7ef;">
+    <th style="padding:10px;text-align:left;">ID</th>
+    <th style="padding:10px;text-align:left;">Khách</th>
+    <th style="padding:10px;text-align:left;">Sản phẩm</th>
+    <th style="padding:10px;text-align:left;">SL</th>
+    <th style="padding:10px;text-align:left;">Tổng</th>
+    <th style="padding:10px;text-align:left;">Giao hàng</th>
+    <th style="padding:10px;text-align:left;">Trạng thái</th>
+    <th style="padding:10px;text-align:left;">Thao tác</th>
+  </tr>
+  {% for d in ds %}
+  <tr>
+    <td style="padding:10px;border-top:1px solid #eee;">#{{ d.id }}</td>
+    <td style="padding:10px;border-top:1px solid #eee;">{{ d.nguoi_dat.username }}</td>
+    <td style="padding:10px;border-top:1px solid #eee;">{{ d.san_pham.ten }}</td>
+    <td style="padding:10px;border-top:1px solid #eee;">{{ d.so_luong }}</td>
+    <td style="padding:10px;border-top:1px solid #eee;">{{ d.tong_tien|vnd }} VND</td>
+    <td style="padding:10px;border-top:1px solid #eee;">
+      <div><b>{{ d.ho_ten }}</b> • {{ d.sdt }}</div>
+      <div style="color:#666;">{{ d.dia_chi }}</div>
+      {% if d.ghi_chu %}<div style="color:#666;">Ghi chú: {{ d.ghi_chu }}</div>{% endif %}
+      <div style="color:#666;">TT: {{ d.phuong_thuc_tt }}</div>
+    </td>
+    <td style="padding:10px;border-top:1px solid #eee;"><b>{{ d.trang_thai }}</b></td>
+    <td style="padding:10px;border-top:1px solid #eee;">
+      {% if d.trang_thai != "Cancelled" and d.trang_thai != "Rejected" %}
+        <a class="btn" href="{% url 'duyet_don' d.id 'approve' %}">Approve</a>
+        <a class="btn" href="{% url 'duyet_don' d.id 'reject' %}">Reject</a>
+      {% else %}
+        -
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

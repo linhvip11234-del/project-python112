@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% load tien %}
+{% block title %}Thanh toán{% endblock %}
+{% block content %}
+<h2 style="font-family:'Cormorant Garamond',serif;margin:18px 0 10px;">Thanh toán</h2>
+
+<div class="split-2">
+  <div class="formbox" style="max-width:none;">
+    {% if form.non_field_errors %}
+      <div class="alert">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    <form method="post">
+      {% csrf_token %}
+
+      <h3 style="margin:0 0 10px;">1) Thông tin nhận hàng</h3>
+
+      {% if saved_addresses %}
+      <p>Chọn địa chỉ đã lưu:<br>
+        {{ form.saved_address_id }}
+        {{ form.saved_address_id.errors }}
+      </p>
+      {% endif %}
+
+      <p>Họ và tên người nhận:<br>
+        {{ form.ho_ten }}
+        {{ form.ho_ten.errors }}
+      </p>
+
+      <p>Số điện thoại:<br>
+        {{ form.sdt }}
+        {{ form.sdt.errors }}
+      </p>
+
+      <p>Địa chỉ giao hàng:<br>
+        {{ form.dia_chi }}
+        {{ form.dia_chi.errors }}
+      </p>
+
+      <p>Ghi chú (tuỳ chọn):<br>
+        {{ form.ghi_chu }}
+        {{ form.ghi_chu.errors }}
+      </p>
+
+      <div class="split-2">
+        <p>
+          <label>{{ form.save_address }} Lưu địa chỉ này cho lần sau</label>
+          {{ form.save_address.errors }}
+        </p>
+        <p>
+          <label>{{ form.set_default_address }} Đặt làm mặc định</label>
+          {{ form.set_default_address.errors }}
+        </p>
+      </div>
+      <p>Nhãn địa chỉ (tuỳ chọn):<br>
+        {{ form.address_label }}
+        {{ form.address_label.errors }}
+      </p>
+
+      <p>Phương thức thanh toán:<br>
+        {{ form.phuong_thuc_tt }}
+        {{ form.phuong_thuc_tt.errors }}
+      </p>
+
+      {% if checkout_source == 'single' %}
+        <h3 style="margin:16px 0 10px;">2) Số lượng</h3>
+        <p>
+          {{ form.so_luong }}
+          {{ form.so_luong.errors }}
+        </p>
+      {% else %}
+        <div style="display:none;">{{ form.so_luong }}</div>
+      {% endif %}
+
+      <h3 style="margin:16px 0 10px;">3) Mã giảm giá</h3>
+      <p>
+        {{ form.voucher_code }}
+        {{ form.voucher_code.errors }}
+      </p>
+      <div class="muted" style="margin-bottom:12px;">Nhập mã giảm giá nếu có. Hệ thống sẽ tự tính lại tổng tiền.</div>
+
+      <button class="btn primary" type="submit">{% if checkout_source == 'cart' %}Tạo đơn từ giỏ hàng{% else %}Đặt hàng{% endif %}</button>
+      <a class="btn" href="{% if checkout_source == 'cart' %}{% url 'gio_hang' %}{% else %}{% url 'home' %}{% endif %}">Quay lại</a>
+    </form>
+  </div>
+
+  <div class="card" style="padding:14px;">
+    <h3 style="margin:0 0 10px;">Tóm tắt đơn hàng</h3>
+    <div style="display:grid;gap:12px;">
+      {% for item in checkout_items %}
+        <div style="display:flex;gap:12px;align-items:center;padding-bottom:10px;border-bottom:1px solid #eee;">
+          <div style="width:88px;height:88px;background:#fff;border:1px solid #eee;border-radius:12px;display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">
+            {% if item.product.anh %}
+              <img src="{{ item.product.anh.url }}" alt="{{ item.product.ten }}" style="width:100%;height:100%;object-fit:contain;">
+            {% else %}
+              <span style="color:#999;">No image</span>
+            {% endif %}
+          </div>
+          <div>
+            <div style="font-weight:700;">{{ item.product.ten }}</div>
+            <div style="color:#666;">SL: <b>{{ item.quantity }}</b></div>
+            <div style="color:#666;">Đơn giá:
+              {% if item.product.dang_giam_gia %}
+                <b>{{ item.product.gia_hien_tai|vnd }} VND</b>
+                <span style="text-decoration:line-through; margin-left:6px;">{{ item.product.gia|vnd }} VND</span>
+              {% else %}
+                <b>{{ item.product.gia|vnd }} VND</b>
+              {% endif %}
+            </div>
+            <div style="color:#666;">Tạm tính: <b>{{ item.subtotal|vnd }} VND</b></div>
+            <div class="status status-{{ item.product.trang_thai|lower }}" style="margin-top:8px;display:inline-flex;">{{ item.product.get_trang_thai_display }}</div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <div style="margin-top:12px;padding:12px;border-radius:12px;background:#faf7ef;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Tạm tính</span><b>{{ subtotal|vnd }} VND</b></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>Giảm giá</span><b>-{{ discount_preview|vnd }} VND</b></div>
+      <div style="display:flex;justify-content:space-between;font-size:18px;"><span>Tổng thanh toán</span><b>{{ total_preview|vnd }} VND</b></div>
+      {% if voucher_preview %}
+        <div class="muted" style="margin-top:8px;">Đang áp dụng mã <b>{{ voucher_preview.code }}</b> - {{ voucher_preview.description }}</div>
+      {% endif %}
+    </div>
+
+    {% if available_vouchers %}
+      <div style="margin-top:12px;padding:12px;border:1px dashed #d8c394;border-radius:12px;background:#fffaf0;">
+        <div style="font-weight:700;">Voucher gợi ý</div>
+        <div style="display:grid;gap:8px;margin-top:8px;">
+          {% for voucher in available_vouchers %}
+            <div>
+              <b>{{ voucher.code }}</b> - {{ voucher.description }}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <div style="margin-top:12px;color:#666;">
+      Luồng đơn hàng: <b>Pending → Confirmed → Approved/Rejected</b>.<br>
+      User có thể xác nhận hoặc huỷ; Admin có thể duyệt / từ chối.
+    </div>
+    <div style="margin-top:12px;padding:12px;border:1px dashed #d8c394;border-radius:12px;background:#fffaf0;">
+      <div style="font-weight:700;">Ví điện tử hiện có</div>
+      <div style="margin-top:6px;">Số dư: <b>{{ wallet.balance|vnd }} VND</b></div>
+      <div class="muted" style="margin-top:6px;">Nếu chọn <b>Ví điện tử</b>, hệ thống sẽ trừ tiền ngay khi tạo đơn. Nếu chọn <b>Chuyển khoản ngân hàng</b>, hệ thống sẽ mở trang QR VietQR để bạn quét và thanh toán trực tiếp cho đơn hàng.</div>
+      <div style="margin-top:10px;"><a class="btn" href="{% url 'wallet' %}">Mở ví điện tử</a></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

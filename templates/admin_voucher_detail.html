@@ -1,0 +1,49 @@
+{% extends "admin_base.html" %}
+{% load tien %}
+{% block title %}Admin - Chi tiết voucher{% endblock %}
+{% block admin_content %}
+  <div class="card" style="padding:18px;">
+    <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;">
+      <div>
+        <div class="muted">Voucher #{{ voucher.id }}</div>
+        <h2 style="margin:4px 0 0;">{{ voucher.code }}</h2>
+      </div>
+      <div class="row" style="gap:10px;flex-wrap:wrap;">
+        <a class="btn" href="{% url 'admin_voucher_edit' voucher.id %}">Sửa</a>
+        <a class="btn danger" href="{% url 'admin_voucher_delete' voucher.id %}">Xoá</a>
+      </div>
+    </div>
+
+    <div class="grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:16px;">
+      <div class="card" style="padding:14px;">
+        <div class="muted">Tên hiển thị</div>
+        <div><b>{{ voucher.title|default:"Chưa đặt tên" }}</b></div>
+        <div class="muted" style="margin-top:10px;">Mô tả</div>
+        <div>{{ voucher.description|default:"—" }}</div>
+      </div>
+      <div class="card" style="padding:14px;">
+        <div class="muted">Giảm giá</div>
+        <div><b>{% if voucher.discount_type == "percent" %}{{ voucher.value }}%{% else %}{{ voucher.value|vnd }} VND{% endif %}</b></div>
+        <div class="muted" style="margin-top:10px;">Giảm tối đa</div>
+        <div>{{ voucher.max_discount|vnd }} VND</div>
+      </div>
+      <div class="card" style="padding:14px;">
+        <div class="muted">Điều kiện</div>
+        <div>Đơn tối thiểu: <b>{{ voucher.min_order_value|vnd }} VND</b></div>
+        <div style="margin-top:10px;">Đã dùng: <b>{{ voucher.used_count }}</b>{% if voucher.usage_limit %} / {{ voucher.usage_limit }}{% else %} / không giới hạn{% endif %}</div>
+      </div>
+      <div class="card" style="padding:14px;">
+        <div class="muted">Thời gian</div>
+        <div>Bắt đầu: <b>{% if voucher.starts_at %}{{ voucher.starts_at|date:"H:i d/m/Y" }}{% else %}Ngay{% endif %}</b></div>
+        <div style="margin-top:10px;">Kết thúc: <b>{% if voucher.ends_at %}{{ voucher.ends_at|date:"H:i d/m/Y" }}{% else %}Không giới hạn{% endif %}</b></div>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <span class="status {% if voucher.active %}status-approved{% else %}status-cancelled{% endif %}">
+        {% if voucher.active %}Đang bật{% else %}Đang tắt{% endif %}
+      </span>
+      {% if voucher.is_available_now %}<span class="muted" style="margin-left:8px;">Voucher hiện đang khả dụng.</span>{% else %}<span class="muted" style="margin-left:8px;">Voucher hiện chưa khả dụng hoặc đã hết lượt dùng / hết hạn.</span>{% endif %}
+    </div>
+  </div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Khôi phục bằng câu hỏi bảo mật{% endblock %}
+{% block content %}
+<h2 style="font-family:'Cormorant Garamond',serif;margin:18px 0 10px;">Khôi phục bằng câu hỏi bảo mật</h2>
+<div class="formbox">
+  <p class="muted" style="margin-top:0;">Tài khoản <b>{{ reset_user.username }}</b>. Trả lời đúng cả 2 câu hỏi để đặt mật khẩu mới.</p>
+  {% if form.non_field_errors %}<div class="err">{{ form.non_field_errors|join:", " }}</div>{% endif %}
+  <form method="post">
+    {% csrf_token %}
+    <p><b>{{ question_1 }}</b><br>{{ form.answer_1 }}{% if form.answer_1.errors %}<div class="err">{{ form.answer_1.errors|join:", " }}</div>{% endif %}</p>
+    <p><b>{{ question_2 }}</b><br>{{ form.answer_2 }}{% if form.answer_2.errors %}<div class="err">{{ form.answer_2.errors|join:", " }}</div>{% endif %}</p>
+    <p>{{ form.new_password.label_tag }}<br>{{ form.new_password }}{% if form.new_password.errors %}<div class="err">{{ form.new_password.errors|join:", " }}</div>{% endif %}</p>
+    <p>{{ form.new_password2.label_tag }}<br>{{ form.new_password2 }}{% if form.new_password2.errors %}<div class="err">{{ form.new_password2.errors|join:", " }}</div>{% endif %}</p>
+    <div class="row" style="justify-content:flex-start;flex-wrap:wrap;margin-top:12px;">
+      <button class="btn primary" type="submit">Xác nhận đổi mật khẩu</button>
+      <a class="btn" href="{% url 'chon_phuong_thuc_khoi_phuc' %}">Chọn cách khác</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

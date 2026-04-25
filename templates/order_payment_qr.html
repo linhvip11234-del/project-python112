@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load tien %}
+{% block title %}Thanh toán chuyển khoản{% endblock %}
+{% block content %}
+<h2 style="font-family:'Cormorant Garamond',serif;margin:18px 0 10px;">Thanh toán chuyển khoản cho đơn #{{ don.id }}</h2>
+<div class="split-2">
+  <div class="card" style="padding:16px;text-align:center;">
+    <h3 style="margin-top:0;">QR thanh toán trực tiếp khi đặt hàng</h3>
+    <img src="{% url 'order_payment_qr_image' don.id %}" alt="QR thanh toán đơn hàng" style="width:260px;max-width:100%;border:1px solid #eee;border-radius:16px;background:#fff;padding:12px;">
+    <div class="muted" style="margin-top:10px;">QR động VietQR đã gắn sẵn tổng tiền đơn hàng.</div>
+  </div>
+  <div class="card" style="padding:16px;">
+    <h3 style="margin-top:0;">Thông tin thanh toán</h3>
+    <p><b>Sản phẩm:</b> {{ don.san_pham.ten }}</p>
+    <p><b>Số lượng:</b> {{ don.so_luong }}</p>
+    <p><b>Tổng tiền:</b> {{ don.tong_tien|vnd }} VND</p>
+    <p><b>Mã thanh toán:</b> {{ don.ma_thanh_toan }}</p>
+    <p><b>Ngân hàng:</b> {{ bank_info.bank_name }}</p>
+    <p><b>Số tài khoản:</b> {{ bank_info.account_no }}</p>
+    <p><b>Chủ tài khoản:</b> {{ bank_info.account_name }}</p>
+    <p><b>Trạng thái thanh toán:</b>
+      {% if don.da_thanh_toan %}
+        <span class="status status-approved">Đã thanh toán</span>
+      {% else %}
+        <span class="status status-pending">Chưa thanh toán</span>
+      {% endif %}
+    </p>
+
+    {% if not don.da_thanh_toan %}
+    <div style="margin-top:12px;padding:12px;border:1px dashed #d8c394;border-radius:12px;background:#fffaf0;line-height:1.8;">
+      Sau khi người dùng quét QR, hệ thống sẽ mô phỏng callback ngân hàng sau <b>{{ auto_seconds }} giây</b> để cập nhật đơn đã thanh toán.
+    </div>
+    <form id="orderCallbackForm" method="post" action="{% url 'order_payment_callback' don.id %}" style="margin-top:14px;">
+      {% csrf_token %}
+      <button class="btn primary" type="submit">Mô phỏng thanh toán thành công</button>
+      <a class="btn" href="{% url 'ds_don' %}">Về đơn hàng</a>
+    </form>
+    <script>
+      setTimeout(function(){
+        const form = document.getElementById('orderCallbackForm');
+        if(form){ form.submit(); }
+      }, {{ auto_seconds|default:5 }} * 1000);
+    </script>
+    {% else %}
+      <a class="btn" href="{% url 'ds_don' %}">Quay về đơn hàng</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
