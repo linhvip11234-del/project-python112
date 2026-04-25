@@ -32,6 +32,7 @@ urlpatterns = [
     path("don-hang/<int:don_id>/thanh-toan-qr/", views.order_payment_qr, name="order_payment_qr"),
     path("don-hang/<int:don_id>/thanh-toan-qr/img/", views.order_payment_qr_image, name="order_payment_qr_image"),
     path("don-hang/<int:don_id>/thanh-toan-qr/callback/", views.order_payment_callback, name="order_payment_callback"),
+    path("don-hang/<int:don_id>/danh-gia-nhanh/", views.quick_review_order, name="quick_review_order"),
     path("vi-dien-tu/", views.wallet_view, name="wallet"),
     path("vi-dien-tu/nap-tien/", views.wallet_deposit, name="wallet_deposit"),
     path("vi-dien-tu/nap-tien/<int:topup_id>/", views.wallet_topup_detail, name="wallet_topup_detail"),
