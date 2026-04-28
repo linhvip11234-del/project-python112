@@ -1876,3 +1876,13 @@ def admin_voucher_edit(request, voucher_id):
     return render(request, "admin_voucher_form.html", {"mode": "edit", "form": form, "voucher": voucher})
 
 
+@admin_required
+# Admin voucher: xóa voucher nếu không vi phạm ràng buộc.
+def admin_voucher_delete(request, voucher_id):
+    voucher = get_object_or_404(Voucher, id=voucher_id)
+    if request.method == "POST":
+        code = voucher.code
+        voucher.delete()
+        messages.success(request, f"Đã xoá voucher {code}.")
+        return redirect("admin_voucher_list")
+    return render(request, "admin_voucher_delete.html", {"voucher": voucher})
