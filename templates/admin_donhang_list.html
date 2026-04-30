@@ -85,6 +85,7 @@
           <td>
             <div class="admin-actions">
               <a class="btn" href="{% url 'admin_donhang_detail' d.id %}">Xem</a>
+              <a class="btn" href="{% url 'admin_invoice_pdf' d.id %}">PDF</a>
               <a class="btn" href="{% url 'admin_donhang_edit' d.id %}">Sửa</a>
               <a class="btn danger" href="{% url 'admin_donhang_delete' d.id %}">Xoá</a>
             </div>

@@ -1,4 +1,4 @@
-# views.py: chứa toàn bộ controller/view của website bán trang sức, gồm luồng khách hàng, thanh toán, ví điện tử và trang quản trị.
+# views.py: chứa toàn bộ controller/view của website bán Lumière, gồm luồng khách hàng, thanh toán, ví điện tử và trang quản trị.
 
 import datetime as dt
 import io
@@ -16,10 +16,11 @@ from django.db import models
 from django.db.models import Avg, Count, Sum
 from django.db.models.deletion import ProtectedError
 from django.db.models.functions import TruncDate
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 
 from .decorators import admin_required
 from .forms import (
@@ -970,6 +971,282 @@ def wallet_topup_callback(request, topup_id):
     return redirect("wallet")
 
 
+def _vnd(amount) -> str:
+    try:
+        return f"{int(amount or 0):,}".replace(",", ".") + " VND"
+    except Exception:
+        return "0 VND"
+
+
+def _register_invoice_font():
+    """Đăng ký font Unicode cho PDF để không lỗi tiếng Việt."""
+    try:
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        import os
+
+        font_candidates = [
+            os.path.join(getattr(settings, "BASE_DIR", ""), "static", "fonts", "DejaVuSans.ttf"),
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "C:/Windows/Fonts/arial.ttf",
+            "C:/Windows/Fonts/Arial.ttf",
+        ]
+
+        bold_candidates = [
+            os.path.join(getattr(settings, "BASE_DIR", ""), "static", "fonts", "DejaVuSans-Bold.ttf"),
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "C:/Windows/Fonts/arialbd.ttf",
+            "C:/Windows/Fonts/Arialbd.ttf",
+            "C:/Windows/Fonts/arial.ttf",
+        ]
+
+        regular_path = next((p for p in font_candidates if p and os.path.exists(p)), None)
+        bold_path = next((p for p in bold_candidates if p and os.path.exists(p)), regular_path)
+
+        if regular_path:
+            pdfmetrics.registerFont(TTFont("InvoiceFont", regular_path))
+            pdfmetrics.registerFont(TTFont("InvoiceFontBold", bold_path or regular_path))
+            return "InvoiceFont", "InvoiceFontBold"
+    except Exception:
+        pass
+    return "Helvetica", "Helvetica-Bold"
+
+
+def _draw_wrapped_text(canvas, text, x, y, max_width, font_name, font_size, line_height=14):
+    """Vẽ text xuống nhiều dòng trong PDF."""
+    text = str(text or "")
+    words = text.split()
+    line = ""
+    for word in words:
+        trial = (line + " " + word).strip()
+        if canvas.stringWidth(trial, font_name, font_size) <= max_width:
+            line = trial
+        else:
+            if line:
+                canvas.drawString(x, y, line)
+                y -= line_height
+            line = word
+    if line:
+        canvas.drawString(x, y, line)
+        y -= line_height
+    return y
+
+
+def _build_invoice_pdf_response(don: DonHang, *, generated_by_admin: bool = False) -> HttpResponse:
+    """Sinh hóa đơn PDF cho một đơn hàng."""
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.pdfgen import canvas
+
+    buffer = io.BytesIO()
+    page_width, page_height = A4
+    pdf = canvas.Canvas(buffer, pagesize=A4)
+    font_regular, font_bold = _register_invoice_font()
+
+    # Màu nhận diện
+    dark = colors.HexColor("#1F1F1F")
+    gold = colors.HexColor("#C9A96E")
+    soft = colors.HexColor("#FAF7F2")
+    line = colors.HexColor("#E9E1D8")
+    muted = colors.HexColor("#6B7280")
+
+    left = 22 * mm
+    right = page_width - 22 * mm
+    top = page_height - 22 * mm
+
+    # Header nền
+    pdf.setFillColor(soft)
+    pdf.roundRect(left - 5 * mm, top - 32 * mm, right - left + 10 * mm, 32 * mm, 8, fill=True, stroke=False)
+
+    pdf.setFillColor(gold)
+    pdf.circle(left + 8 * mm, top - 15 * mm, 7 * mm, fill=True, stroke=False)
+    pdf.setFillColor(colors.white)
+    pdf.setFont(font_bold, 14)
+    pdf.drawCentredString(left + 8 * mm, top - 19 * mm, "LM")
+
+    pdf.setFillColor(dark)
+    pdf.setFont(font_bold, 18)
+    pdf.drawString(left + 20 * mm, top - 11 * mm, "Lumière")
+    pdf.setFont(font_regular, 9)
+    pdf.setFillColor(muted)
+    pdf.drawString(left + 20 * mm, top - 17 * mm, "Website Lumière - Demo Django")
+    pdf.drawString(left + 20 * mm, top - 23 * mm, "Hotline: 1800-xxxx | Email: demo@gmail.com | Thái Nguyên")
+
+    pdf.setFillColor(dark)
+    pdf.setFont(font_bold, 20)
+    pdf.drawRightString(right, top - 11 * mm, "HÓA ĐƠN")
+    pdf.setFont(font_regular, 10)
+    pdf.setFillColor(muted)
+    pdf.drawRightString(right, top - 18 * mm, f"Mã đơn: #{don.id}")
+    pdf.drawRightString(right, top - 24 * mm, f"Ngày tạo: {timezone.localtime(don.tao_luc).strftime('%d/%m/%Y %H:%M') if don.tao_luc else ''}")
+
+    y = top - 44 * mm
+
+    # Khối thông tin khách hàng và đơn hàng
+    box_h = 42 * mm
+    col_gap = 8 * mm
+    col_w = (right - left - col_gap) / 2
+
+    pdf.setStrokeColor(line)
+    pdf.setFillColor(colors.white)
+    pdf.roundRect(left, y - box_h, col_w, box_h, 8, fill=True, stroke=True)
+    pdf.roundRect(left + col_w + col_gap, y - box_h, col_w, box_h, 8, fill=True, stroke=True)
+
+    pdf.setFillColor(dark)
+    pdf.setFont(font_bold, 12)
+    pdf.drawString(left + 6 * mm, y - 8 * mm, "Thông tin khách hàng")
+    pdf.drawString(left + col_w + col_gap + 6 * mm, y - 8 * mm, "Thông tin thanh toán")
+
+    pdf.setFont(font_regular, 10)
+    pdf.setFillColor(dark)
+    ky = y - 16 * mm
+    pdf.drawString(left + 6 * mm, ky, f"Họ tên: {don.ho_ten or don.nguoi_dat.username}")
+    ky -= 7 * mm
+    pdf.drawString(left + 6 * mm, ky, f"SĐT: {don.sdt}")
+    ky -= 7 * mm
+    pdf.drawString(left + 6 * mm, ky, "Địa chỉ:")
+    ky -= 6 * mm
+    _draw_wrapped_text(pdf, don.dia_chi, left + 6 * mm, ky, col_w - 12 * mm, font_regular, 9, 11)
+
+    py = y - 16 * mm
+    pdf.drawString(left + col_w + col_gap + 6 * mm, py, f"Phương thức: {don.get_phuong_thuc_tt_display()}")
+    py -= 7 * mm
+    pdf.drawString(left + col_w + col_gap + 6 * mm, py, f"Trạng thái đơn: {don.get_trang_thai_display()}")
+    py -= 7 * mm
+    paid_text = "Đã thanh toán" if don.da_thanh_toan else "Chưa thanh toán"
+    pdf.drawString(left + col_w + col_gap + 6 * mm, py, f"Thanh toán: {paid_text}")
+    py -= 7 * mm
+    if don.ma_thanh_toan:
+        pdf.drawString(left + col_w + col_gap + 6 * mm, py, f"Mã TT: {don.ma_thanh_toan}")
+
+    y -= box_h + 15 * mm
+
+    # Bảng sản phẩm
+    pdf.setFont(font_bold, 13)
+    pdf.setFillColor(dark)
+    pdf.drawString(left, y, "Chi tiết sản phẩm")
+    y -= 8 * mm
+
+    table_x = left
+    table_w = right - left
+    row_h = 11 * mm
+    col1 = 12 * mm
+    col2 = 82 * mm
+    col3 = 20 * mm
+    col4 = 32 * mm
+    col5 = table_w - col1 - col2 - col3 - col4
+
+    pdf.setFillColor(gold)
+    pdf.roundRect(table_x, y - row_h, table_w, row_h, 5, fill=True, stroke=False)
+    pdf.setFillColor(colors.white)
+    pdf.setFont(font_bold, 9)
+    pdf.drawString(table_x + 4 * mm, y - 7 * mm, "STT")
+    pdf.drawString(table_x + col1 + 4 * mm, y - 7 * mm, "Sản phẩm")
+    pdf.drawRightString(table_x + col1 + col2 + col3 - 4 * mm, y - 7 * mm, "SL")
+    pdf.drawRightString(table_x + col1 + col2 + col3 + col4 - 4 * mm, y - 7 * mm, "Đơn giá")
+    pdf.drawRightString(table_x + table_w - 4 * mm, y - 7 * mm, "Thành tiền")
+
+    y -= row_h
+    pdf.setStrokeColor(line)
+    pdf.setFillColor(colors.white)
+    pdf.rect(table_x, y - row_h, table_w, row_h, fill=True, stroke=True)
+
+    unit_price = int(don.tong_tien_goc or don.tinh_tong_tien() or 0) // max(int(don.so_luong or 1), 1)
+    pdf.setFillColor(dark)
+    pdf.setFont(font_regular, 9)
+    pdf.drawString(table_x + 4 * mm, y - 7 * mm, "1")
+    _draw_wrapped_text(pdf, don.san_pham.ten, table_x + col1 + 4 * mm, y - 6 * mm, col2 - 8 * mm, font_regular, 9, 10)
+    pdf.drawRightString(table_x + col1 + col2 + col3 - 4 * mm, y - 7 * mm, str(don.so_luong))
+    pdf.drawRightString(table_x + col1 + col2 + col3 + col4 - 4 * mm, y - 7 * mm, _vnd(unit_price))
+    pdf.drawRightString(table_x + table_w - 4 * mm, y - 7 * mm, _vnd(don.tong_tien_goc or don.tinh_tong_tien()))
+
+    y -= row_h + 8 * mm
+
+    # Tổng kết
+    summary_w = 76 * mm
+    summary_x = right - summary_w
+    pdf.setStrokeColor(line)
+    pdf.setFillColor(colors.white)
+    pdf.roundRect(summary_x, y - 42 * mm, summary_w, 42 * mm, 8, fill=True, stroke=True)
+
+    sy = y - 9 * mm
+    pdf.setFont(font_regular, 10)
+    pdf.setFillColor(dark)
+    pdf.drawString(summary_x + 6 * mm, sy, "Tạm tính:")
+    pdf.drawRightString(summary_x + summary_w - 6 * mm, sy, _vnd(don.tong_tien_goc or don.tinh_tong_tien()))
+    sy -= 8 * mm
+    pdf.drawString(summary_x + 6 * mm, sy, "Giảm giá:")
+    pdf.drawRightString(summary_x + summary_w - 6 * mm, sy, f"-{_vnd(don.discount_amount)}")
+    sy -= 8 * mm
+    if don.voucher_code:
+        pdf.setFillColor(muted)
+        pdf.setFont(font_regular, 8)
+        pdf.drawString(summary_x + 6 * mm, sy, f"Voucher: {don.voucher_code}")
+        pdf.setFillColor(dark)
+        pdf.setFont(font_regular, 10)
+    sy -= 8 * mm
+    pdf.setStrokeColor(line)
+    pdf.line(summary_x + 6 * mm, sy + 3 * mm, summary_x + summary_w - 6 * mm, sy + 3 * mm)
+    pdf.setFont(font_bold, 12)
+    pdf.drawString(summary_x + 6 * mm, sy - 2 * mm, "Tổng thanh toán:")
+    pdf.setFillColor(gold)
+    pdf.drawRightString(summary_x + summary_w - 6 * mm, sy - 2 * mm, _vnd(don.tong_tien))
+
+    # Ghi chú
+    note_x = left
+    note_y = y - 6 * mm
+    pdf.setFillColor(muted)
+    pdf.setFont(font_regular, 9)
+    pdf.drawString(note_x, note_y, "Ghi chú:")
+    note_y -= 6 * mm
+    note_text = don.ghi_chu or "Cảm ơn quý khách đã mua hàng tại Website Lumière."
+    _draw_wrapped_text(pdf, note_text, note_x, note_y, table_w - summary_w - 12 * mm, font_regular, 9, 12)
+
+    # Chữ ký
+    y -= 58 * mm
+    pdf.setFillColor(dark)
+    pdf.setFont(font_bold, 10)
+    pdf.drawCentredString(left + 40 * mm, y, "Khách hàng")
+    pdf.drawCentredString(right - 40 * mm, y, "Người bán")
+    pdf.setFont(font_regular, 8)
+    pdf.setFillColor(muted)
+    pdf.drawCentredString(left + 40 * mm, y - 6 * mm, "(Ký, ghi rõ họ tên)")
+    pdf.drawCentredString(right - 40 * mm, y - 6 * mm, "(Ký, ghi rõ họ tên)")
+
+    # Footer
+    pdf.setStrokeColor(line)
+    pdf.line(left, 18 * mm, right, 18 * mm)
+    pdf.setFillColor(muted)
+    pdf.setFont(font_regular, 8)
+    source_text = "Hóa đơn được xuất từ trang quản trị." if generated_by_admin else "Hóa đơn được xuất từ tài khoản khách hàng."
+    pdf.drawString(left, 12 * mm, source_text)
+    pdf.drawRightString(right, 12 * mm, f"Trang 1/1")
+
+    pdf.showPage()
+    pdf.save()
+
+    buffer.seek(0)
+    filename = f"hoa_don_DH{don.id}.pdf"
+    response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
+def invoice_pdf(request, don_id):
+    """Khách hàng tải hóa đơn PDF của đơn hàng thuộc tài khoản mình."""
+    don = get_object_or_404(DonHang.objects.select_related("nguoi_dat", "san_pham", "voucher"), id=don_id, nguoi_dat=request.user)
+    return _build_invoice_pdf_response(don, generated_by_admin=False)
+
+
+@admin_required
+def admin_invoice_pdf(request, don_id):
+    """Admin tải hóa đơn PDF của bất kỳ đơn hàng nào."""
+    don = get_object_or_404(DonHang.objects.select_related("nguoi_dat", "san_pham", "voucher"), id=don_id)
+    return _build_invoice_pdf_response(don, generated_by_admin=True)
+
 @login_required
 # Danh sách đơn hàng của khách: xem lịch sử mua, lọc theo trạng thái và tra cứu chi tiết.
 def ds_don(request):
@@ -1875,4 +2152,421 @@ def admin_voucher_edit(request, voucher_id):
         return redirect("admin_voucher_detail", voucher_id=voucher.id)
     return render(request, "admin_voucher_form.html", {"mode": "edit", "form": form, "voucher": voucher})
 
+
+@admin_required
+# Admin voucher: xóa voucher nếu không vi phạm ràng buộc.
+def admin_voucher_delete(request, voucher_id):
+    voucher = get_object_or_404(Voucher, id=voucher_id)
+    if request.method == "POST":
+        code = voucher.code
+        voucher.delete()
+        messages.success(request, f"Đã xoá voucher {code}.")
+        return redirect("admin_voucher_list")
+    return render(request, "admin_voucher_delete.html", {"voucher": voucher})
+
+
+
+def _normalize_chat_text(value: str) -> str:
+    value = (value or "").strip().lower()
+    replacements = {
+        "á": "a", "à": "a", "ả": "a", "ã": "a", "ạ": "a",
+        "ă": "a", "ắ": "a", "ằ": "a", "ẳ": "a", "ẵ": "a", "ặ": "a",
+        "â": "a", "ấ": "a", "ầ": "a", "ẩ": "a", "ẫ": "a", "ậ": "a",
+        "é": "e", "è": "e", "ẻ": "e", "ẽ": "e", "ẹ": "e",
+        "ê": "e", "ế": "e", "ề": "e", "ể": "e", "ễ": "e", "ệ": "e",
+        "í": "i", "ì": "i", "ỉ": "i", "ĩ": "i", "ị": "i",
+        "ó": "o", "ò": "o", "ỏ": "o", "õ": "o", "ọ": "o",
+        "ô": "o", "ố": "o", "ồ": "o", "ổ": "o", "ỗ": "o", "ộ": "o",
+        "ơ": "o", "ớ": "o", "ờ": "o", "ở": "o", "ỡ": "o", "ợ": "o",
+        "ú": "u", "ù": "u", "ủ": "u", "ũ": "u", "ụ": "u",
+        "ư": "u", "ứ": "u", "ừ": "u", "ử": "u", "ữ": "u", "ự": "u",
+        "ý": "y", "ỳ": "y", "ỷ": "y", "ỹ": "y", "ỵ": "y",
+        "đ": "d",
+    }
+    for src, dst in replacements.items():
+        value = value.replace(src, dst)
+    return value
+
+
+def _chatbot_context_for_user(request, message: str) -> str:
+    """Lấy ngữ cảnh ngắn từ CSDL để chatbot trả lời sát website."""
+    normalized = _normalize_chat_text(message)
+
+    product_keywords = []
+    keyword_map = {
+        "nhan": "nhẫn",
+        "day": "dây",
+        "day chuyen": "dây",
+        "lac": "lắc",
+        "vong": "vòng",
+        "bong tai": "bông",
+        "bo trang suc": "bộ",
+        "san pham": "",
+        "tim": "",
+    }
+    for key, keyword in keyword_map.items():
+        if key in normalized:
+            product_keywords.append(keyword)
+
+    products_qs = SanPham.objects.filter(trang_thai="active")
+    if product_keywords:
+        query = models.Q()
+        for keyword in product_keywords:
+            if keyword:
+                query |= models.Q(ten__icontains=keyword) | models.Q(mo_ta__icontains=keyword) | models.Q(search_tags__icontains=keyword)
+        if query:
+            products_qs = products_qs.filter(query)
+    products = list(products_qs.order_by("-id")[:6])
+
+    if not products:
+        products = list(SanPham.objects.filter(trang_thai="active").order_by("-id")[:6])
+
+    product_lines = []
+    for sp in products:
+        stock = "còn hàng" if sp.con_hang else "hết hàng"
+        sale = ""
+        if sp.dang_flash_sale:
+            sale = " - đang flash sale"
+        elif sp.dang_giam_gia:
+            sale = " - đang giảm giá"
+        product_lines.append(
+            f"- {sp.ten}: giá hiện tại {sp.gia_hien_tai:,}đ, tồn kho {sp.ton_kho}, {stock}{sale}"
+        )
+
+    user_lines = []
+    if getattr(request, "user", None) and request.user.is_authenticated:
+        user_lines.append(f"Khách đang đăng nhập: {request.user.username}")
+        try:
+            wallet = get_or_create_wallet(request.user)
+            user_lines.append(f"Số dư ví: {wallet.balance:,}đ")
+        except Exception:
+            pass
+
+        try:
+            cart_items = list(get_cart_items(request.user)[:5])
+            if cart_items:
+                user_lines.append("Giỏ hàng hiện tại:")
+                for item in cart_items:
+                    user_lines.append(f"- {item.san_pham.ten} x {item.quantity}, tạm tính {item.thanh_tien:,}đ")
+            else:
+                user_lines.append("Giỏ hàng hiện tại đang trống.")
+        except Exception:
+            pass
+
+        try:
+            orders = list(DonHang.objects.filter(nguoi_dat=request.user).select_related("san_pham").order_by("-tao_luc")[:3])
+            if orders:
+                user_lines.append("Đơn hàng gần đây:")
+                for order in orders:
+                    user_lines.append(
+                        f"- Đơn #{order.id}: {order.san_pham.ten}, SL {order.so_luong}, tổng {order.tong_tien:,}đ, trạng thái {order.get_trang_thai_display()}"
+                    )
+        except Exception:
+            pass
+    else:
+        user_lines.append("Khách chưa đăng nhập.")
+
+    policy_lines = [
+        "- Website bán Lumière demo bằng Django.",
+        "- Thanh toán hỗ trợ COD, chuyển khoản/QR mô phỏng và ví điện tử.",
+        "- Voucher áp dụng nếu còn hiệu lực, còn lượt dùng và đạt đơn tối thiểu.",
+        "- Nạp ví: user tạo yêu cầu, admin duyệt thì số dư ví tăng.",
+        "- Đơn hàng có trạng thái: Chờ xác nhận, Đã xác nhận, Đã duyệt, Từ chối, Đã hủy.",
+        "- Đánh giá sản phẩm chỉ dành cho người dùng đã mua sản phẩm.",
+        "- Liên hệ: Hotline 1800-xxxx, Email demo@gmail.com, địa chỉ Thái Nguyên.",
+    ]
+
+    return "\n".join([
+        "THÔNG TIN WEBSITE:",
+        *policy_lines,
+        "",
+        "SẢN PHẨM LIÊN QUAN:",
+        *(product_lines or ["- Chưa có sản phẩm phù hợp."]),
+        "",
+        "THÔNG TIN NGƯỜI DÙNG:",
+        *user_lines,
+    ])
+
+
+def _call_openai_chatbot(message: str, context: str) -> str:
+    """Gọi OpenAI-compatible Chat Completions nếu có OPENAI_API_KEY.
+
+    Không bắt buộc cài thêm thư viện. Nếu không có key hoặc lỗi mạng,
+    hàm trả về chuỗi rỗng để dùng fallback nội bộ.
+    """
+    import json
+    import os
+    import urllib.request
+
+    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return ""
+
+    api_url = os.environ.get("OPENAI_CHAT_COMPLETIONS_URL", "https://api.openai.com/v1/chat/completions").strip()
+    model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini").strip()
+
+    system_prompt = (
+        "Bạn là trợ lý AI bán hàng cho website Lumière Django. "
+        "Trả lời bằng tiếng Việt, xưng 'em' và gọi khách là 'Anh/Chị'. "
+        "Dựa trên THÔNG TIN WEBSITE được cung cấp, không bịa dữ liệu ngoài hệ thống. "
+        "Câu trả lời ngắn gọn, thân thiện, tối đa 6 câu hoặc dùng gạch đầu dòng ngắn. "
+        "Nếu khách hỏi mua sản phẩm, hãy gợi ý sản phẩm còn hàng và hướng dẫn bấm xem chi tiết/thêm giỏ. "
+        "Nếu câu hỏi cần thao tác tài khoản, nhắc khách đăng nhập. "
+        "Không yêu cầu thông tin nhạy cảm như mật khẩu hay mã OTP."
+    )
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": context},
+            {"role": "user", "content": message},
+        ],
+        "temperature": 0.45,
+        "max_tokens": 450,
+    }
+
+    data = json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(
+        api_url,
+        data=data,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(request, timeout=12) as response:
+            raw = response.read().decode("utf-8")
+            result = json.loads(raw)
+            return (result.get("choices", [{}])[0].get("message", {}).get("content") or "").strip()
+    except Exception:
+        return ""
+
+
+def _smart_local_chatbot_reply(message: str, context: str, request) -> str:
+    """Fallback thông minh hơn rule cũ: phân tích ý định + dùng dữ liệu context."""
+    text = _normalize_chat_text(message)
+    lower_message = (message or "").strip().lower()
+
+    # Chào hỏi
+    if any(k in text for k in ["chao", "hello", "hi", "xin chao"]):
+        return (
+            "Xin chào Anh/Chị, em là trợ lý AI của cửa hàng Lumière. "
+            "Em có thể hỗ trợ tìm sản phẩm, tư vấn đặt hàng, thanh toán, nạp ví, dùng voucher và theo dõi đơn hàng ạ."
+        )
+
+    # Hỏi sản phẩm / tư vấn mua
+    product_intent = any(k in text for k in [
+        "san pham", "tim", "mua", "nhan", "day", "day chuyen", "lac", "vong", "bong tai", "bo trang suc",
+        "goi y", "tu van", "con hang", "gia", "re", "dep", "qua tang"
+    ])
+    if product_intent:
+        # tìm từ khóa chính trong câu
+        keyword = ""
+        if "nhan" in text:
+            keyword = "nhẫn"
+        elif "day" in text or "day chuyen" in text:
+            keyword = "dây"
+        elif "lac" in text:
+            keyword = "lắc"
+        elif "vong" in text:
+            keyword = "vòng"
+        elif "bong tai" in text:
+            keyword = "bông"
+        elif "bo trang suc" in text:
+            keyword = "bộ"
+
+        qs = SanPham.objects.filter(trang_thai="active")
+        if keyword:
+            qs = qs.filter(models.Q(ten__icontains=keyword) | models.Q(mo_ta__icontains=keyword) | models.Q(search_tags__icontains=keyword))
+
+        # ưu tiên còn hàng, giá thấp nếu hỏi rẻ
+        if any(k in text for k in ["re", "gia thap", "tiet kiem"]):
+            qs = qs.order_by("gia")
+        else:
+            qs = qs.order_by("-ton_kho", "-id")
+
+        products = list(qs[:4])
+        if not products:
+            products = list(SanPham.objects.filter(trang_thai="active").order_by("-id")[:4])
+
+        if not products:
+            return "Hiện hệ thống chưa có sản phẩm để em gợi ý. Anh/Chị có thể nhờ admin thêm sản phẩm trước khi demo ạ."
+
+        lines = ["Em gợi ý Anh/Chị một vài sản phẩm phù hợp:"]
+        for sp in products:
+            stock_text = "còn hàng" if sp.con_hang else "hết hàng"
+            price_note = f"{sp.gia_hien_tai:,}đ"
+            if sp.dang_flash_sale:
+                price_note += " (flash sale)"
+            elif sp.dang_giam_gia:
+                price_note += " (đang giảm)"
+            lines.append(f"- {sp.ten}: {price_note}, tồn kho {sp.ton_kho} ({stock_text}).")
+        lines.append("Anh/Chị bấm vào sản phẩm để xem chi tiết, sau đó chọn thêm vào giỏ hàng để đặt mua nhé.")
+        return "\n".join(lines)
+
+    # Đặt hàng / giỏ
+    if any(k in text for k in ["dat hang", "mua hang", "gio hang", "checkout", "them vao gio"]):
+        if getattr(request, "user", None) and request.user.is_authenticated:
+            try:
+                count = get_cart_items(request.user).count()
+            except Exception:
+                count = 0
+            cart_note = f"Hiện giỏ hàng của Anh/Chị có {count} sản phẩm." if count else "Hiện giỏ hàng của Anh/Chị đang trống."
+        else:
+            cart_note = "Anh/Chị nên đăng nhập trước để đặt hàng và theo dõi đơn."
+
+        return (
+            f"{cart_note}\n"
+            "Quy trình đặt hàng gồm:\n"
+            "1. Chọn sản phẩm và bấm Thêm vào giỏ.\n"
+            "2. Vào Giỏ hàng, kiểm tra số lượng.\n"
+            "3. Nhập địa chỉ nhận hàng và chọn phương thức thanh toán.\n"
+            "4. Xác nhận đặt hàng, sau đó admin sẽ xử lý đơn."
+        )
+
+    # Thanh toán
+    if any(k in text for k in ["thanh toan", "cod", "chuyen khoan", "qr", "vietqr", "tra tien"]):
+        return (
+            "Website hỗ trợ 3 cách thanh toán:\n"
+            "- COD: thanh toán khi nhận hàng.\n"
+            "- Chuyển khoản/QR: hệ thống hiển thị mã QR mô phỏng giao dịch.\n"
+            "- Ví điện tử: trừ trực tiếp từ số dư ví nếu đủ tiền.\n"
+            "Với đồ án, QR là mô phỏng để minh họa quy trình thanh toán đầu–cuối."
+        )
+
+    # Ví
+    if any(k in text for k in ["vi", "nap tien", "nap vi", "so du", "rut tien"]):
+        wallet_line = ""
+        if getattr(request, "user", None) and request.user.is_authenticated:
+            try:
+                wallet = get_or_create_wallet(request.user)
+                wallet_line = f"Số dư ví hiện tại của Anh/Chị là {wallet.balance:,}đ.\n"
+            except Exception:
+                wallet_line = ""
+        return (
+            wallet_line +
+            "Để nạp ví: vào Ví điện tử → Nạp tiền → nhập số tiền → tạo yêu cầu nạp. "
+            "Sau đó admin duyệt yêu cầu, hệ thống sẽ cộng tiền vào ví và lưu lịch sử giao dịch."
+        )
+
+    # Voucher
+    if any(k in text for k in ["voucher", "ma giam", "giam gia", "khuyen mai", "flash sale"]):
+        active_vouchers = list(Voucher.objects.filter(active=True).order_by("-id")[:4])
+        lines = ["Voucher/mã giảm giá được nhập ở bước đặt hàng."]
+        if active_vouchers:
+            lines.append("Một số mã đang có trong hệ thống:")
+            for v in active_vouchers:
+                if v.discount_type == "percent":
+                    value = f"giảm {v.value}%"
+                else:
+                    value = f"giảm {v.value:,}đ"
+                lines.append(f"- {v.code}: {value}, đơn tối thiểu {v.min_order_value:,}đ.")
+        lines.append("Mã chỉ dùng được khi còn hiệu lực, còn lượt dùng và đơn đạt điều kiện.")
+        return "\n".join(lines)
+
+    # Đơn hàng
+    if any(k in text for k in ["don hang", "trang thai", "huy don", "theo doi", "van chuyen"]):
+        if getattr(request, "user", None) and request.user.is_authenticated:
+            orders = list(DonHang.objects.filter(nguoi_dat=request.user).select_related("san_pham").order_by("-tao_luc")[:3])
+            if orders:
+                lines = ["Các đơn gần đây của Anh/Chị:"]
+                for order in orders:
+                    lines.append(f"- Đơn #{order.id}: {order.san_pham.ten}, tổng {order.tong_tien:,}đ, trạng thái {order.get_trang_thai_display()}.")
+                lines.append("Anh/Chị vào mục Đơn hàng để xem chi tiết hoặc hủy đơn nếu còn được phép.")
+                return "\n".join(lines)
+        return (
+            "Anh/Chị vào mục Đơn hàng để xem trạng thái. "
+            "Các trạng thái chính gồm: Chờ xác nhận, Đã xác nhận, Đã duyệt, Từ chối và Đã hủy. "
+            "Nếu chưa đăng nhập, Anh/Chị cần đăng nhập để xem đơn của mình."
+        )
+
+    # Đánh giá
+    if any(k in text for k in ["danh gia", "review", "rating", "binh luan", "sao"]):
+        return (
+            "Anh/Chị có thể đánh giá sản phẩm sau khi đã mua sản phẩm đó. "
+            "Khi đủ điều kiện, form đánh giá sẽ hiển thị ở trang chi tiết sản phẩm, gồm số sao, tiêu đề và bình luận."
+        )
+
+    # Admin/kho
+    if any(k in text for k in ["admin", "quan tri", "kho", "nhap kho", "ton kho", "nha cung cap", "phieu nhap"]):
+        return (
+            "Trang quản trị hỗ trợ quản lý sản phẩm, đơn hàng, người dùng, voucher, tồn kho, nhà cung cấp và phiếu nhập kho. "
+            "Khi nhập kho, bán hàng hoặc hủy đơn, hệ thống ghi lịch sử tồn kho để admin dễ kiểm tra."
+        )
+
+    # Liên hệ
+    if any(k in text for k in ["lien he", "hotline", "email", "dia chi", "cua hang"]):
+        return (
+            "Anh/Chị có thể liên hệ cửa hàng qua:\n"
+            "- Hotline: 1800-xxxx\n"
+            "- Email: demo@gmail.com\n"
+            "- Địa chỉ: Thái Nguyên\n"
+            "Thời gian hỗ trợ: 8:00–22:00."
+        )
+
+    # fallback tự nhiên
+    return (
+        "Em chưa chắc mình hiểu đúng ý Anh/Chị. "
+        "Anh/Chị có thể hỏi rõ hơn theo các chủ đề như: tìm sản phẩm, tư vấn mua Lumière, cách đặt hàng, thanh toán, nạp ví, voucher, đơn hàng hoặc quản lý kho ạ."
+    )
+
+
+@csrf_exempt
+def chatbot_api(request):
+    """API chatbot AI cho website bán Lumière.
+
+    Cách hoạt động:
+    - Nếu có biến môi trường OPENAI_API_KEY: gọi AI để trả lời tự nhiên theo ngữ cảnh website.
+    - Nếu chưa có API key hoặc lỗi mạng: dùng fallback thông minh nội bộ, vẫn chạy ổn định khi demo.
+    """
+    if request.method != "POST":
+        return JsonResponse({
+            "reply": "Chatbot chỉ hỗ trợ phương thức POST.",
+            "quick_replies": ["Tìm sản phẩm", "Cách đặt hàng", "Thanh toán", "Liên hệ"]
+        }, status=405)
+
+    try:
+        import json
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except Exception:
+        payload = {}
+
+    message = (payload.get("message") or "").strip()
+    quick_replies = [
+        "Tư vấn sản phẩm",
+        "Tìm nhẫn còn hàng",
+        "Cách đặt hàng",
+        "Thanh toán thế nào?",
+        "Nạp ví",
+        "Đơn hàng của tôi",
+    ]
+
+    if not message:
+        return JsonResponse({
+            "reply": "Anh/Chị hãy nhập câu hỏi nhé. Ví dụ: 'tư vấn nhẫn làm quà', 'cách đặt hàng', 'ví của tôi còn bao nhiêu?'",
+            "quick_replies": quick_replies
+        })
+
+    context = _chatbot_context_for_user(request, message)
+
+    # Ưu tiên AI thật nếu người dùng cấu hình API key
+    ai_reply = _call_openai_chatbot(message, context)
+    if ai_reply:
+        return JsonResponse({
+            "reply": ai_reply,
+            "quick_replies": quick_replies,
+            "mode": "ai"
+        })
+
+    # Fallback không cần internet/API key
+    reply = _smart_local_chatbot_reply(message, context, request)
+    return JsonResponse({
+        "reply": reply,
+        "quick_replies": quick_replies,
+        "mode": "local_ai_fallback"
+    })
 

@@ -32,6 +32,7 @@
 
     <div class="row" style="gap:10px;flex-wrap:wrap;align-items:flex-start;">
       <a class="btn" href="{% url 'admin_donhang_list' %}">Quay lại</a>
+      <a class="btn" href="{% url 'admin_invoice_pdf' don.id %}">Hóa đơn PDF</a>
       <a class="btn primary" href="{% url 'admin_donhang_edit' don.id %}">Sửa</a>
       <a class="btn danger" href="{% url 'admin_donhang_delete' don.id %}">Xoá</a>
     </div>

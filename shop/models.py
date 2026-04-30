@@ -106,7 +106,7 @@ class SanPham(models.Model):
     def mo_ta_ngan(self) -> str:
         mo_ta = (self.mo_ta or "").strip()
         if not mo_ta:
-            return "Trang sức cao cấp, thiết kế thanh lịch và phù hợp làm quà tặng."
+            return "Lumière cao cấp, thiết kế thanh lịch và phù hợp làm quà tặng."
         return mo_ta[:120] + ("..." if len(mo_ta) > 120 else "")
 
     @property

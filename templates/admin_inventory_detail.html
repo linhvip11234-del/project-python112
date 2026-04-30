@@ -1,30 +1,6 @@
 {% extends "admin_base.html" %}
 {% load tien %}
-{% block title %}Admin - Chi tiết kho<div class="card" style="padding:18px;margin-top:14px;">
-  <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
-    <h3 style="margin:0;">Lô hàng gần đây</h3>
-    <a class="btn" href="{% url 'admin_receipt_list' %}">Xem phiếu nhập kho</a>
-  </div>
-  <div class="table-wrap" style="margin-top:10px;">
-    <table class="tbl">
-      <thead><tr><th>Mã lô</th><th>Phiếu nhập</th><th>SL nhập</th><th>SL còn lại</th><th></th></tr></thead>
-      <tbody>
-      {% for batch in sp.inventory_batches.all|slice:":8" %}
-        <tr>
-          <td>{{ batch.batch_code }}</td>
-          <td>{{ batch.receipt.code }}</td>
-          <td>{{ batch.so_luong_nhap }}</td>
-          <td>{{ batch.so_luong_con_lai }}</td>
-          <td><a class="btn" href="{% url 'admin_batch_detail' batch.id %}">Chi tiết lô</a></td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="5" class="muted">Chưa có lô hàng nhập cho sản phẩm này.</td></tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-{% endblock %}
+{% block title %}Admin - Chi tiết kho{% endblock %}
 {% block admin_content %}
 <div class="card" style="padding:18px;">
   <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">

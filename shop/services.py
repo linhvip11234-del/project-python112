@@ -365,7 +365,7 @@ def get_bank_info() -> dict:
         "bank_bin": getattr(settings, "VIETQR_BANK_BIN", "970422"),
         "bank_name": getattr(settings, "VIETQR_BANK_NAME", "MB Bank"),
         "account_no": getattr(settings, "VIETQR_ACCOUNT_NO", "0123456789"),
-        "account_name": getattr(settings, "VIETQR_ACCOUNT_NAME", "TRANG SUC DEMO"),
+        "account_name": getattr(settings, "VIETQR_ACCOUNT_NAME", "LUMIERE DEMO"),
         "city": getattr(settings, "VIETQR_CITY", "HA NOI"),
     }
 

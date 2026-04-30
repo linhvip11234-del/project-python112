@@ -1,6 +1,6 @@
 # Jewelry Django Demo v7 (CRUD + Roles + Workflow)
 
-Demo website bán trang sức bằng Django, đã bổ sung thêm các yêu cầu thường gặp của đồ án CRUD.
+Demo website bán Lumière bằng Django, đã bổ sung thêm các yêu cầu thường gặp của đồ án CRUD.
 
 ## Tính năng đã có
 
@@ -76,3 +76,31 @@ python manage.py test
 - Không thể xoá sản phẩm nếu đã phát sinh đơn hàng; nên chuyển sang `inactive`
 - Không thể xoá user nếu user đó đã có đơn hàng
 - Time zone đang dùng: `Asia/Ho_Chi_Minh`
+
+## Cấu hình chatbot AI
+
+Website đã tích hợp chatbot hỗ trợ khách hàng ở góc phải màn hình.
+
+Chatbot có 2 chế độ:
+
+1. **Chế độ AI thật**: nếu cấu hình biến môi trường `OPENAI_API_KEY`, chatbot sẽ gọi mô hình AI để trả lời tự nhiên hơn dựa trên dữ liệu sản phẩm, giỏ hàng, đơn hàng và ví điện tử.
+2. **Chế độ fallback thông minh**: nếu chưa có API key hoặc mất mạng, chatbot vẫn hoạt động bằng bộ xử lý nội bộ, đủ để demo chức năng.
+
+### Cách bật chatbot AI thật
+
+Tạo file `.env` ở thư mục gốc dự án, cùng cấp với `manage.py`, sau đó thêm:
+
+```env
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_CHAT_COMPLETIONS_URL=https://api.openai.com/v1/chat/completions
+```
+
+Sau đó khởi động lại server Django:
+
+```bash
+python manage.py runserver
+```
+
+Nếu không có API key, không cần cấu hình gì thêm. Chatbot vẫn chạy ở chế độ fallback thông minh.
+

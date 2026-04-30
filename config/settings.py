@@ -75,11 +75,11 @@ LOGOUT_REDIRECT_URL = "/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 
-VIETQR_BANK_BIN = "970422"
-VIETQR_BANK_NAME = "MB Bank"
-VIETQR_ACCOUNT_NO = "0123456789"
-VIETQR_ACCOUNT_NAME = "TRANG SUC DEMO"
-VIETQR_CITY = "HA NOI"
+VIETQR_BANK_BIN = "970415"
+VIETQR_BANK_NAME = "VietinBank CN THAI NGUYEN - PGD DAN"
+VIETQR_ACCOUNT_NO = "106880291017"
+VIETQR_ACCOUNT_NAME = "NGUYEN XUAN LINH"
+VIETQR_CITY = "THAI NGUYEN"
 BANK_CALLBACK_AUTO_SECONDS = 5
 AUTO_APPROVE_TOPUP_CALLBACK = True
 
@@ -103,3 +103,17 @@ REST_FRAMEWORK = {
         "rest_framework.authentication.BasicAuthentication",
     ],
 }
+
+# Cloudflare Tunnel / public demo config
+# Cho phép demo public bằng trycloudflare.com và tránh lỗi CSRF 403 khi POST form.
+ALLOWED_HOSTS = [
+    "*",
+    ".trycloudflare.com",
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.trycloudflare.com",
+]
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True

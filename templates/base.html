@@ -4,8 +4,291 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}Trang sức Demo{% endblock %}</title>
+  <title>{% block title %}Lumière Demo{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'style.css' %}?v=logo2">
+
+  <style id="chatbot-inline-style">
+    /* Chatbot mini - inline để tránh lỗi không tải CSS */
+    .chatbot-widget{
+      position:fixed !important;
+      right:18px !important;
+      bottom:18px !important;
+      z-index:99999 !important;
+      font-family:Arial, Helvetica, sans-serif !important;
+    }
+    .chatbot-mini-card{
+      position:absolute !important;
+      right:0 !important;
+      bottom:62px !important;
+      width:250px !important;
+      padding:13px 14px !important;
+      border-radius:16px !important;
+      background:#fff !important;
+      color:#344054 !important;
+      border:1px solid #e9e1d8 !important;
+      box-shadow:0 12px 30px rgba(31,31,31,.16) !important;
+      cursor:pointer !important;
+      transform-origin:bottom right !important;
+      animation:chatbotMiniIn .25s ease-out !important;
+      line-height:1.4 !important;
+    }
+    .chatbot-mini-card::after{
+      content:"" !important;
+      position:absolute !important;
+      right:24px !important;
+      bottom:-8px !important;
+      width:16px !important;
+      height:16px !important;
+      background:#fff !important;
+      border-right:1px solid #e9e1d8 !important;
+      border-bottom:1px solid #e9e1d8 !important;
+      transform:rotate(45deg) !important;
+    }
+    .chatbot-mini-title{
+      display:flex !important;
+      align-items:center !important;
+      gap:8px !important;
+      margin-bottom:7px !important;
+      color:#111827 !important;
+      font-size:15px !important;
+      font-weight:700 !important;
+    }
+    .chatbot-avatar-small{
+      width:24px !important;
+      height:24px !important;
+      display:inline-grid !important;
+      place-items:center !important;
+      border-radius:50% !important;
+      background:#ffd437 !important;
+      color:#1f1f1f !important;
+      font-size:13px !important;
+      box-shadow:0 4px 10px rgba(255,190,0,.28) !important;
+      flex:0 0 24px !important;
+    }
+    .chatbot-mini-text{
+      font-size:14px !important;
+      line-height:1.55 !important;
+      color:#475467 !important;
+      margin:0 !important;
+    }
+    .chatbot-greeting-hidden .chatbot-mini-card,
+    .chatbot-open .chatbot-mini-card{
+      display:none !important;
+    }
+    .chatbot-greeting-pulse .chatbot-mini-card{
+      animation:chatbotMiniPulse 1.4s ease-in-out 1 !important;
+    }
+    @keyframes chatbotMiniIn{
+      from{opacity:0;transform:translateY(8px) scale(.96);}
+      to{opacity:1;transform:translateY(0) scale(1);}
+    }
+    @keyframes chatbotMiniPulse{
+      0%,100%{transform:translateY(0);}
+      45%{transform:translateY(-4px);}
+    }
+    .chatbot-toggle{
+      position:relative !important;
+      width:58px !important;
+      height:58px !important;
+      display:flex !important;
+      flex-direction:column !important;
+      align-items:center !important;
+      justify-content:center !important;
+      gap:1px !important;
+      border:3px solid #fff !important;
+      border-radius:50% !important;
+      padding:0 !important;
+      background:linear-gradient(145deg,#ffd83d 0%,#ffbd19 52%,#f59e0b 100%) !important;
+      color:#1f1f1f !important;
+      box-shadow:0 10px 28px rgba(245,158,11,.38),0 0 0 1px rgba(255,193,7,.25) !important;
+      cursor:pointer !important;
+      font-weight:800 !important;
+      transition:transform .18s ease, box-shadow .18s ease !important;
+      overflow:hidden !important;
+    }
+    .chatbot-toggle:hover{
+      transform:translateY(-2px) scale(1.03) !important;
+      box-shadow:0 15px 34px rgba(245,158,11,.46),0 0 0 1px rgba(255,193,7,.35) !important;
+    }
+    .chatbot-toggle-icon{
+      width:24px !important;
+      height:22px !important;
+      display:grid !important;
+      place-items:center !important;
+      font-size:18px !important;
+      line-height:1 !important;
+    }
+    .chatbot-toggle-text{
+      display:block !important;
+      max-width:48px !important;
+      font-size:9px !important;
+      line-height:1 !important;
+      text-align:center !important;
+      font-weight:900 !important;
+      letter-spacing:0 !important;
+    }
+    .chatbot-panel{
+      position:absolute !important;
+      right:0 !important;
+      bottom:70px !important;
+      width:min(340px, calc(100vw - 28px)) !important;
+      height:500px !important;
+      max-height:calc(100vh - 112px) !important;
+      display:none !important;
+      flex-direction:column !important;
+      overflow:hidden !important;
+      border:1px solid #e9e1d8 !important;
+      border-radius:18px !important;
+      background:#fff !important;
+      box-shadow:0 18px 55px rgba(31,31,31,.24) !important;
+    }
+    .chatbot-open .chatbot-panel{
+      display:flex !important;
+      animation:chatbotPop .18s ease-out !important;
+    }
+    @keyframes chatbotPop{
+      from{opacity:0;transform:translateY(10px) scale(.98);}
+      to{opacity:1;transform:translateY(0) scale(1);}
+    }
+    .chatbot-header{
+      display:flex !important;
+      align-items:center !important;
+      justify-content:space-between !important;
+      gap:12px !important;
+      padding:13px 14px !important;
+      color:#fff !important;
+      background:linear-gradient(135deg,#1f1f1f,#4b3824) !important;
+    }
+    .chatbot-header-left{
+      display:flex !important;
+      align-items:center !important;
+      gap:10px !important;
+    }
+    .chatbot-avatar{
+      width:36px !important;
+      height:36px !important;
+      border-radius:50% !important;
+      display:grid !important;
+      place-items:center !important;
+      background:#ffd437 !important;
+      color:#1f1f1f !important;
+      border:2px solid rgba(255,255,255,.8) !important;
+      flex:0 0 36px !important;
+    }
+    .chatbot-title{
+      font-size:19px !important;
+      font-weight:700 !important;
+      line-height:1.2 !important;
+      margin:0 !important;
+    }
+    .chatbot-status{
+      font-size:12px !important;
+      opacity:.82 !important;
+      margin-top:2px !important;
+    }
+    .chatbot-close{
+      width:32px !important;
+      height:32px !important;
+      border:1px solid rgba(255,255,255,.3) !important;
+      border-radius:50% !important;
+      background:rgba(255,255,255,.14) !important;
+      color:#fff !important;
+      font-size:23px !important;
+      line-height:1 !important;
+      cursor:pointer !important;
+      flex:0 0 32px !important;
+    }
+    .chatbot-messages{
+      flex:1 !important;
+      padding:12px !important;
+      overflow:auto !important;
+      background:linear-gradient(180deg,#fff 0%,#faf7f2 100%) !important;
+    }
+    .chatbot-message{
+      display:flex !important;
+      margin:8px 0 !important;
+    }
+    .chatbot-message.user{justify-content:flex-end !important;}
+    .chatbot-message.bot{justify-content:flex-start !important;}
+    .chatbot-bubble{
+      max-width:84% !important;
+      padding:9px 11px !important;
+      border-radius:15px !important;
+      font-size:13px !important;
+      line-height:1.45 !important;
+      border:1px solid #e9e1d8 !important;
+      white-space:normal !important;
+      box-sizing:border-box !important;
+    }
+    .chatbot-message.bot .chatbot-bubble{
+      background:#fff !important;
+      color:#1f1f1f !important;
+      border-bottom-left-radius:5px !important;
+    }
+    .chatbot-message.user .chatbot-bubble{
+      background:#c9a96e !important;
+      color:#fff !important;
+      border-color:#c9a96e !important;
+      border-bottom-right-radius:5px !important;
+    }
+    .chatbot-suggestions{
+      display:flex !important;
+      gap:6px !important;
+      padding:9px 10px !important;
+      overflow:auto !important;
+      border-top:1px solid #e9e1d8 !important;
+      background:#fff !important;
+    }
+    .chatbot-suggestions button{
+      flex:0 0 auto !important;
+      border:1px solid #e9e1d8 !important;
+      border-radius:999px !important;
+      background:#faf7f2 !important;
+      color:#1f1f1f !important;
+      padding:6px 9px !important;
+      font-size:12px !important;
+      cursor:pointer !important;
+      white-space:nowrap !important;
+    }
+    .chatbot-form{
+      display:flex !important;
+      gap:7px !important;
+      padding:10px !important;
+      border-top:1px solid #e9e1d8 !important;
+      background:#fff !important;
+    }
+    .chatbot-form input{
+      flex:1 !important;
+      min-width:0 !important;
+      border:1px solid #e9e1d8 !important;
+      border-radius:999px !important;
+      padding:10px 12px !important;
+      outline:none !important;
+      background:#fff !important;
+      font-size:13px !important;
+      box-sizing:border-box !important;
+    }
+    .chatbot-form button{
+      border:0 !important;
+      border-radius:999px !important;
+      padding:0 13px !important;
+      background:#c9a96e !important;
+      color:#fff !important;
+      font-weight:800 !important;
+      cursor:pointer !important;
+      min-height:38px !important;
+    }
+    .chatbot-typing span{animation:chatbotBlink 1.1s infinite !important;}
+    .chatbot-typing span:nth-child(2){animation-delay:.15s !important;}
+    .chatbot-typing span:nth-child(3){animation-delay:.3s !important;}
+    @keyframes chatbotBlink{0%,80%,100%{opacity:.25;}40%{opacity:1;}}
+    @media (max-width:640px){
+      .chatbot-widget{right:12px !important; bottom:12px !important;}
+      .chatbot-mini-card{width:245px !important; bottom:56px !important;}
+      .chatbot-panel{right:0 !important; bottom:66px !important; height:72vh !important;}
+    }
+  </style>
+
 </head>
 <body>
   <div class="topbar">
@@ -21,9 +304,9 @@
     <div class="container">
       <div class="row">
         <a class="brand" href="{% url 'home' %}">
-          <img class="logo-img" src="{% static 'logo-diamond.png' %}" alt="Logo Trang Sức">
+          <img class="logo-img" src="{% static 'logo-diamond.png' %}" alt="Logo Lumière">
           <div>
-            <div class="title">TRANG SỨC</div>
+            <div class="title">Lumière</div>
           </div>
         </a>
 
@@ -58,7 +341,7 @@
         <a href="{% url 'home' %}?q=Dây">Dây chuyền</a>
         <a href="{% url 'home' %}?q=Lắc tay">Lắc tay</a>
         <a href="{% url 'flash_sale_products' %}">Flash Sale</a>
-        <a href="{% url 'home' %}?q=Bộ trang sức">Bộ trang sức</a>
+        <a href="{% url 'home' %}?q=Bộ Lumière">Bộ Lumière</a>
       </div>
     </div>
   </div>
@@ -80,12 +363,65 @@
     {% block content %}{% endblock %}
   </div>
 
+
+
+  <!-- Chatbot hỗ trợ khách hàng kiểu mini -->
+  <div class="chatbot-widget" id="chatbotWidget">
+    <div class="chatbot-mini-card" id="chatbotMiniCard">
+      <div class="chatbot-mini-title">
+        <span class="chatbot-avatar-small">💎</span>
+        <strong>Lumière</strong>
+      </div>
+      <div class="chatbot-mini-text">
+        Xin chào Anh/Chị! Em là trợ lý AI của cửa hàng Lumière.
+      </div>
+    </div>
+
+    <button class="chatbot-toggle" id="chatbotToggle" type="button" aria-label="Mở chatbot">
+      <span class="chatbot-toggle-icon">💎</span>
+      <span class="chatbot-toggle-text">Trợ lý AI</span>
+    </button>
+
+    <div class="chatbot-panel" id="chatbotPanel" aria-live="polite">
+      <div class="chatbot-header">
+        <div class="chatbot-header-left">
+          <div class="chatbot-avatar">💎</div>
+          <div>
+            <div class="chatbot-title">Trợ lý Lumière</div>
+            <div class="chatbot-status">Online • Hỗ trợ mua hàng</div>
+          </div>
+        </div>
+        <button class="chatbot-close" id="chatbotClose" type="button" aria-label="Đóng chatbot">×</button>
+      </div>
+
+      <div class="chatbot-messages" id="chatbotMessages">
+        <div class="chatbot-message bot">
+          <div class="chatbot-bubble">
+            Xin chào Anh/Chị! Em có thể hỗ trợ tìm sản phẩm, đặt hàng, thanh toán, nạp ví và theo dõi đơn hàng.
+          </div>
+        </div>
+      </div>
+
+      <div class="chatbot-suggestions" id="chatbotSuggestions">
+        <button type="button" data-question="Tìm nhẫn">Tìm nhẫn</button>
+        <button type="button" data-question="Cách đặt hàng">Cách đặt hàng</button>
+        <button type="button" data-question="Thanh toán">Thanh toán</button>
+        <button type="button" data-question="Nạp ví">Nạp ví</button>
+      </div>
+
+      <form class="chatbot-form" id="chatbotForm">
+        <input id="chatbotInput" type="text" placeholder="Nhập câu hỏi..." autocomplete="off">
+        <button type="submit">Gửi</button>
+      </form>
+    </div>
+  </div>
+
   <div class="footer">
     <div class="container">
       <div class="cols">
         <div>
-          <h3>TRANG SỨC</h3>
-          <p>Demo đồ án Django: Guest/User/Admin • CRUD • Upload ảnh • Duyệt đơn.</p>
+          <h3>Lumière</h3>
+          <p>Demo đồ án Django: website bán trang sức Lumière • Guest/User/Admin • CRUD • Upload ảnh • Duyệt đơn.</p>
         </div>
         <div>
           <h3>Hỗ trợ</h3>
@@ -107,6 +443,144 @@
     setTimeout(() => {
       document.querySelectorAll('.toast').forEach((el) => el.classList.add('toast-hide'));
     }, 3200);
+  </script>
+
+  <script>
+    (function () {
+      const widget = document.getElementById('chatbotWidget');
+      const toggle = document.getElementById('chatbotToggle');
+      const miniCard = document.getElementById('chatbotMiniCard');
+      const closeBtn = document.getElementById('chatbotClose');
+      const form = document.getElementById('chatbotForm');
+      const input = document.getElementById('chatbotInput');
+      const messages = document.getElementById('chatbotMessages');
+      const suggestions = document.getElementById('chatbotSuggestions');
+
+      if (!widget || !toggle || !form || !input || !messages) return;
+
+      function openChat() {
+        widget.classList.add('chatbot-open');
+        widget.classList.add('chatbot-greeting-hidden');
+        setTimeout(() => input.focus(), 120);
+      }
+
+      function closeChat() {
+        widget.classList.remove('chatbot-open');
+        setTimeout(() => {
+          widget.classList.remove('chatbot-greeting-hidden');
+        }, 180);
+      }
+
+      function escapeHtml(value) {
+        return String(value || '')
+          .replaceAll('&', '&amp;')
+          .replaceAll('<', '&lt;')
+          .replaceAll('>', '&gt;')
+          .replaceAll('"', '&quot;')
+          .replaceAll("'", '&#039;');
+      }
+
+      function addMessage(sender, text) {
+        const row = document.createElement('div');
+        row.className = 'chatbot-message ' + sender;
+        const bubble = document.createElement('div');
+        bubble.className = 'chatbot-bubble';
+        bubble.innerHTML = escapeHtml(text).replace(/\n/g, '<br>');
+        row.appendChild(bubble);
+        messages.appendChild(row);
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      function setTyping(show) {
+        let typing = document.getElementById('chatbotTyping');
+        if (show) {
+          if (!typing) {
+            typing = document.createElement('div');
+            typing.id = 'chatbotTyping';
+            typing.className = 'chatbot-message bot';
+            typing.innerHTML = '<div class="chatbot-bubble chatbot-typing">Đang trả lời<span>.</span><span>.</span><span>.</span></div>';
+            messages.appendChild(typing);
+          }
+        } else if (typing) {
+          typing.remove();
+        }
+        messages.scrollTop = messages.scrollHeight;
+      }
+
+      function renderSuggestions(items) {
+        if (!suggestions || !Array.isArray(items)) return;
+        suggestions.innerHTML = '';
+        items.slice(0, 4).forEach((item) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.dataset.question = item;
+          btn.textContent = item;
+          suggestions.appendChild(btn);
+        });
+      }
+
+      async function sendMessage(text) {
+        const question = (text || '').trim();
+        if (!question) return;
+        addMessage('user', question);
+        input.value = '';
+        setTyping(true);
+
+        try {
+          const response = await fetch("{% url 'chatbot_api' %}", {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({ message: question })
+          });
+
+          const data = await response.json();
+          setTyping(false);
+          addMessage('bot', data.reply || 'Xin lỗi, hiện em chưa trả lời được câu hỏi này.');
+          if (data.quick_replies) renderSuggestions(data.quick_replies);
+        } catch (error) {
+          setTyping(false);
+          addMessage('bot', 'Không thể kết nối chatbot. Anh/Chị hãy kiểm tra lại server Django hoặc thử tải lại trang nhé.');
+        }
+      }
+
+      toggle.addEventListener('click', () => {
+        if (widget.classList.contains('chatbot-open')) {
+          closeChat();
+        } else {
+          openChat();
+        }
+      });
+
+      if (miniCard) {
+        miniCard.addEventListener('click', openChat);
+      }
+
+      if (closeBtn) closeBtn.addEventListener('click', closeChat);
+
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        sendMessage(input.value);
+      });
+
+      if (suggestions) {
+        suggestions.addEventListener('click', function (event) {
+          const btn = event.target.closest('button[data-question]');
+          if (btn) {
+            openChat();
+            sendMessage(btn.dataset.question);
+          }
+        });
+      }
+
+      setTimeout(() => {
+        if (!widget.classList.contains('chatbot-open')) {
+          widget.classList.add('chatbot-greeting-pulse');
+        }
+      }, 800);
+    })();
   </script>
 </body>
 </html>
