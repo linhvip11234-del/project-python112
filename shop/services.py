@@ -53,16 +53,18 @@ INVENTORY_SORTS = {
 
 ORDER_TRANSITIONS = {
     "user": {
-        "Pending": {"Confirmed", "Cancelled"},
+        "Pending": {"Cancelled"},
         "Confirmed": {"Cancelled"},
-        "Approved": set(),
+        "Shipping": set(),
+        "Completed": set(),
         "Rejected": set(),
         "Cancelled": set(),
     },
     "admin": {
-        "Pending": {"Confirmed", "Approved", "Rejected", "Cancelled"},
-        "Confirmed": {"Approved", "Rejected", "Cancelled"},
-        "Approved": set(),
+        "Pending": {"Confirmed", "Rejected", "Cancelled"},
+        "Confirmed": {"Shipping", "Rejected", "Cancelled"},
+        "Shipping": {"Completed", "Cancelled"},
+        "Completed": set(),
         "Rejected": set(),
         "Cancelled": set(),
     },
@@ -714,7 +716,7 @@ def send_order_status_email(*, order: DonHang, old_status: str, new_status: str)
     email = (order.nguoi_dat.email or "").strip()
     if not email:
         return
-    subject = f"[Trang suc] Don hang #{order.id} da chuyen sang {order.get_trang_thai_display()}"
+    subject = f"[Lumière] Don hang #{order.id} da chuyen sang {order.get_trang_thai_display()}"
     body = (
         f"Xin chao {order.ho_ten or order.nguoi_dat.username},\n\n"
         f"Don hang #{order.id} cua ban vua duoc cap nhat trang thai.\n"
@@ -722,7 +724,7 @@ def send_order_status_email(*, order: DonHang, old_status: str, new_status: str)
         f"- Trang thai cu: {old_status or 'Moi tao'}\n"
         f"- Trang thai moi: {new_status}\n"
         f"- Tong thanh toan: {order.tong_tien:,} VND\n\n"
-        f"Cam on ban da mua sam tai he thong demo."
+        f"Cam on ban da mua sam tai Lumiere."
     )
     send_mail(subject, body, getattr(settings, "DEFAULT_FROM_EMAIL", None), [email], fail_silently=True)
 

@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>{% block title %}Lumière Demo{% endblock %}</title>
+  <title>{% block title %}Lumière{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'style.css' %}?v=logo2">
 
   <style id="chatbot-inline-style">
@@ -289,12 +289,128 @@
     }
   </style>
 
+
+  <style id="order-notification-style">
+    .order-notify{
+      position:relative;
+      display:inline-flex;
+      align-items:center;
+    }
+    .notify-bell{
+      position:relative;
+      width:40px;
+      height:40px;
+      border-radius:50%;
+      border:1px solid var(--line);
+      background:#fff;
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+      box-shadow:0 8px 20px rgba(201,169,110,.08);
+      transition:all .18s ease;
+      font-size:18px;
+    }
+    .notify-bell:hover{
+      transform:translateY(-1px);
+      border-color:var(--gold);
+    }
+    .notify-count{
+      position:absolute;
+      right:-4px;
+      top:-4px;
+      min-width:18px;
+      height:18px;
+      padding:0 5px;
+      border-radius:999px;
+      background:#dc2626;
+      color:#fff;
+      font-size:11px;
+      font-weight:800;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      border:2px solid #fff;
+    }
+    .notify-count.show{display:flex;}
+    .notify-panel{
+      position:absolute;
+      right:0;
+      top:48px;
+      width:min(360px,calc(100vw - 28px));
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:18px;
+      box-shadow:0 18px 50px rgba(31,31,31,.18);
+      display:none;
+      overflow:hidden;
+      z-index:9998;
+    }
+    .order-notify.open .notify-panel{display:block;}
+    .notify-head{
+      padding:13px 14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      border-bottom:1px solid var(--line);
+      background:linear-gradient(180deg,#fff,#fffaf2);
+    }
+    .notify-head b{font-size:15px;}
+    .notify-mark-read{
+      border:0;
+      background:transparent;
+      color:#8a6728;
+      cursor:pointer;
+      font-size:12px;
+      font-weight:700;
+    }
+    .notify-list{
+      max-height:360px;
+      overflow:auto;
+      display:grid;
+    }
+    .notify-item{
+      display:block;
+      padding:12px 14px;
+      border-bottom:1px solid #f0ebe4;
+      background:#fff;
+    }
+    .notify-item:hover{background:#fffdf8;}
+    .notify-item.unread{
+      background:#fff8ea;
+    }
+    .notify-title{
+      font-size:13px;
+      font-weight:800;
+      color:var(--text);
+      margin-bottom:5px;
+    }
+    .notify-msg{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.45;
+    }
+    .notify-time{
+      margin-top:5px;
+      font-size:11px;
+      color:#9ca3af;
+    }
+    .notify-empty{
+      padding:18px 14px;
+      text-align:center;
+      color:var(--muted);
+      font-size:13px;
+    }
+    @media(max-width:760px){
+      .notify-panel{right:-70px;}
+    }
+  </style>
+
 </head>
 <body>
   <div class="topbar">
     <div class="container">
       <div class="row">
-        <div class="muted">Hotline: 1800-xxxx • Hỗ trợ: 8:00–22:00</div>
+        <div class="muted">Hotline: 0347062159 • Hỗ trợ: 8:00–22:00</div>
         <div class="muted">Đổi trả • Bảo hành • Cửa hàng</div>
       </div>
     </div>
@@ -317,6 +433,21 @@
 
         <div class="actions">
           {% if user.is_authenticated %}
+            <div class="order-notify" id="orderNotify">
+              <button class="notify-bell" id="notifyBell" type="button" aria-label="Thông báo đơn hàng">
+                🔔
+                <span class="notify-count" id="notifyCount">0</span>
+              </button>
+              <div class="notify-panel" id="notifyPanel">
+                <div class="notify-head">
+                  <b>Thông báo đơn hàng</b>
+                  <button class="notify-mark-read" id="notifyMarkRead" type="button">Đánh dấu đã đọc</button>
+                </div>
+                <div class="notify-list" id="notifyList">
+                  <div class="notify-empty">Đang tải thông báo...</div>
+                </div>
+              </div>
+            </div>
             <a class="btn" href="{% url 'gio_hang' %}">Giỏ hàng{% if cart_count %} ({{ cart_count }}){% endif %}</a>
             <a class="btn" href="{% url 'ds_don' %}">Đơn hàng</a>
             <a class="btn" href="{% url 'wallet' %}">Ví điện tử</a>
@@ -421,7 +552,7 @@
       <div class="cols">
         <div>
           <h3>Lumière</h3>
-          <p>Demo đồ án Django: website bán trang sức Lumière • Guest/User/Admin • CRUD • Upload ảnh • Duyệt đơn.</p>
+          <p>Lumière – Thanh lịch như gió xuân</p>
         </div>
         <div>
           <h3>Hỗ trợ</h3>
@@ -432,8 +563,8 @@
         <div>
           <h3>Liên hệ</h3>
           <p>Thái Nguyên</p>
-          <p>Email: demo@gmail.com</p>
-          <p>Hotline: 1800-xxxx</p>
+          <p>Email: lumire@gmail.com</p>
+          <p>Hotline: 0347062159</p>
         </div>
       </div>
     </div>
@@ -582,5 +713,100 @@
       }, 800);
     })();
   </script>
+
+  <script>
+    (function(){
+      const wrap = document.getElementById('orderNotify');
+      const bell = document.getElementById('notifyBell');
+      const count = document.getElementById('notifyCount');
+      const panel = document.getElementById('notifyPanel');
+      const list = document.getElementById('notifyList');
+      const markRead = document.getElementById('notifyMarkRead');
+
+      if(!wrap || !bell || !count || !panel || !list) return;
+
+      function getCookie(name){
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if(parts.length === 2) return parts.pop().split(';').shift();
+        return '';
+      }
+
+      function escapeHtml(value){
+        return String(value || '')
+          .replaceAll('&','&amp;')
+          .replaceAll('<','&lt;')
+          .replaceAll('>','&gt;')
+          .replaceAll('"','&quot;')
+          .replaceAll("'","&#039;");
+      }
+
+      function render(data){
+        const unread = Number(data.unread_count || 0);
+        if(unread > 0){
+          count.textContent = unread > 99 ? '99+' : unread;
+          count.classList.add('show');
+        }else{
+          count.classList.remove('show');
+        }
+
+        const items = data.items || [];
+        if(!items.length){
+          list.innerHTML = '<div class="notify-empty">Chưa có thông báo đơn hàng.</div>';
+          return;
+        }
+
+        list.innerHTML = items.map((item) => {
+          return `
+            <a class="notify-item ${item.unread ? 'unread' : ''}" href="${escapeHtml(item.url || '#')}">
+              <div class="notify-title">${escapeHtml(item.title)}</div>
+              <div class="notify-msg">${escapeHtml(item.message)}</div>
+              <div class="notify-time">${escapeHtml(item.created_at)}</div>
+            </a>
+          `;
+        }).join('');
+      }
+
+      async function loadNotifications(mark=false){
+        try{
+          const response = await fetch("{% url 'order_notifications_api' %}", {
+            method: mark ? 'POST' : 'GET',
+            headers: {
+              'X-Requested-With': 'XMLHttpRequest',
+              'X-CSRFToken': getCookie('csrftoken')
+            }
+          });
+          const data = await response.json();
+          render(data);
+        }catch(error){
+          list.innerHTML = '<div class="notify-empty">Không tải được thông báo.</div>';
+        }
+      }
+
+      bell.addEventListener('click', function(event){
+        event.stopPropagation();
+        wrap.classList.toggle('open');
+        loadNotifications(false);
+      });
+
+      if(markRead){
+        markRead.addEventListener('click', function(event){
+          event.preventDefault();
+          event.stopPropagation();
+          loadNotifications(true);
+        });
+      }
+
+      document.addEventListener('click', function(event){
+        if(!wrap.contains(event.target)){
+          wrap.classList.remove('open');
+        }
+      });
+
+      loadNotifications(false);
+      setInterval(() => loadNotifications(false), 30000);
+    })();
+  </script>
+
 </body>
 </html>

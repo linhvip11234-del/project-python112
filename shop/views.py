@@ -1071,8 +1071,8 @@ def _build_invoice_pdf_response(don: DonHang, *, generated_by_admin: bool = Fals
     pdf.drawString(left + 20 * mm, top - 11 * mm, "Lumière")
     pdf.setFont(font_regular, 9)
     pdf.setFillColor(muted)
-    pdf.drawString(left + 20 * mm, top - 17 * mm, "Website Lumière - Demo Django")
-    pdf.drawString(left + 20 * mm, top - 23 * mm, "Hotline: 1800-xxxx | Email: demo@gmail.com | Thái Nguyên")
+    pdf.drawString(left + 20 * mm, top - 17 * mm, "Lumière – Thanh lịch như gió xuân")
+    pdf.drawString(left + 20 * mm, top - 23 * mm, "Hotline: 0347062159 | Email: lumire@gmail.com | Thái Nguyên")
 
     pdf.setFillColor(dark)
     pdf.setFont(font_bold, 20)
@@ -2273,7 +2273,7 @@ def _chatbot_context_for_user(request, message: str) -> str:
         "- Nạp ví: user tạo yêu cầu, admin duyệt thì số dư ví tăng.",
         "- Đơn hàng có trạng thái: Chờ xác nhận, Đã xác nhận, Đã duyệt, Từ chối, Đã hủy.",
         "- Đánh giá sản phẩm chỉ dành cho người dùng đã mua sản phẩm.",
-        "- Liên hệ: Hotline 1800-xxxx, Email demo@gmail.com, địa chỉ Thái Nguyên.",
+        "- Liên hệ: Hotline 0347062159, Email lumire@gmail.com, địa chỉ Thái Nguyên.",
     ]
 
     return "\n".join([
@@ -2502,8 +2502,8 @@ def _smart_local_chatbot_reply(message: str, context: str, request) -> str:
     if any(k in text for k in ["lien he", "hotline", "email", "dia chi", "cua hang"]):
         return (
             "Anh/Chị có thể liên hệ cửa hàng qua:\n"
-            "- Hotline: 1800-xxxx\n"
-            "- Email: demo@gmail.com\n"
+            "- Hotline: 0347062159\n"
+            "- Email: lumire@gmail.com\n"
             "- Địa chỉ: Thái Nguyên\n"
             "Thời gian hỗ trợ: 8:00–22:00."
         )
@@ -2516,6 +2516,61 @@ def _smart_local_chatbot_reply(message: str, context: str, request) -> str:
 
 
 @csrf_exempt
+
+
+
+@login_required
+def order_notifications_api(request):
+    """API chuông thông báo trạng thái đơn hàng cho người dùng."""
+    histories = (
+        OrderStatusHistory.objects.filter(order__nguoi_dat=request.user)
+        .select_related("order", "order__san_pham", "actor")
+        .order_by("-created_at", "-id")[:12]
+    )
+
+    seen_ids = set(str(x) for x in request.session.get("seen_order_notification_ids", []))
+    status_icon = {
+        "Pending": "⏳",
+        "Confirmed": "✅",
+        "Shipping": "🚚",
+        "Completed": "🎉",
+        "Cancelled": "❌",
+        "Rejected": "⚠️",
+    }
+
+    items = []
+    unread_count = 0
+    for h in histories:
+        hid = str(h.id)
+        is_unread = hid not in seen_ids
+        if is_unread:
+            unread_count += 1
+        status_label = h.order.get_trang_thai_display() if h.order.trang_thai == h.new_status else dict(DonHang.TRANG_THAI).get(h.new_status, h.new_status)
+        icon = status_icon.get(h.new_status, "🔔")
+        items.append({
+            "id": h.id,
+            "order_id": h.order_id,
+            "title": f"{icon} Đơn #{h.order_id}: {status_label}",
+            "message": f"Sản phẩm {h.order.san_pham.ten} vừa được cập nhật trạng thái sang {status_label}.",
+            "status": h.new_status,
+            "status_label": status_label,
+            "created_at": timezone.localtime(h.created_at).strftime("%d/%m/%Y %H:%M"),
+            "url": reverse("ds_don"),
+            "unread": is_unread,
+        })
+
+    if request.method == "POST":
+        request.session["seen_order_notification_ids"] = [str(item["id"]) for item in items]
+        request.session.modified = True
+        unread_count = 0
+        for item in items:
+            item["unread"] = False
+
+    return JsonResponse({
+        "unread_count": unread_count,
+        "items": items,
+    })
+
 def chatbot_api(request):
     """API chatbot AI cho website bán Lumière.
 

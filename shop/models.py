@@ -215,8 +215,9 @@ class DonHang(models.Model):
     TRANG_THAI = [
         ("Pending", "Chờ xác nhận"),
         ("Confirmed", "Đã xác nhận"),
-        ("Cancelled", "Đã huỷ"),
-        ("Approved", "Đã duyệt"),
+        ("Shipping", "Đang giao"),
+        ("Completed", "Hoàn thành"),
+        ("Cancelled", "Đã hủy"),
         ("Rejected", "Từ chối"),
     ]
 

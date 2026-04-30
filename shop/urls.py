@@ -11,6 +11,7 @@ urlpatterns = [
     path("api/orders/", api_views.OrderListApiView.as_view(), name="api_orders"),
     path("", views.home, name="home"),
     path("chatbot/api/", views.chatbot_api, name="chatbot_api"),
+    path("thong-bao-don-hang/api/", views.order_notifications_api, name="order_notifications_api"),
     path("dang-ky/", views.dang_ky, name="dang_ky"),
     path("dang-nhap/", views.dang_nhap, name="dang_nhap"),
     path("flash-sale/", views.flash_sale_products, name="flash_sale_products"),
