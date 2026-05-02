@@ -2813,13 +2813,4 @@ def admin_review_image_delete(request, image_id):
     return redirect("admin_review_detail", review_id=review_id)
 
 
-@admin_required
-# Admin đánh giá: xóa vĩnh viễn đánh giá.
-def admin_review_delete(request, review_id):
-    review = get_object_or_404(ProductReview.objects.select_related("san_pham", "user"), id=review_id)
-    if request.method == "POST":
-        review.delete()
-        messages.success(request, "Đã xóa đánh giá.")
-        return redirect("admin_review_list")
-    return render(request, "admin_review_delete.html", {"review": review})
 
