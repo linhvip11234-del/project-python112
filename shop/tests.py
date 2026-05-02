@@ -79,19 +79,19 @@ class ShopFeatureTests(TestCase):
         self.client.login(username="admin1", password="123456")
         response = self.client.post(
             reverse("admin_donhang_update", args=[don.id]),
-            {"trang_thai": "Approved"},
+            {"trang_thai": "Completed"},
             follow=True,
         )
         self.assertContains(response, "Đã cập nhật trạng thái đơn")
         don.refresh_from_db()
-        self.assertEqual(don.trang_thai, "Approved")
+        self.assertEqual(don.trang_thai, "Completed")
 
         self.client.logout()
         self.client.login(username="user1", password="123456")
         response = self.client.get(reverse("xac_nhan_don", args=[don.id]), follow=True)
         self.assertContains(response, "Không thể chuyển")
         don.refresh_from_db()
-        self.assertEqual(don.trang_thai, "Approved")
+        self.assertEqual(don.trang_thai, "Completed")
 
     def test_cannot_delete_product_that_has_orders(self):
         DonHang.objects.create(

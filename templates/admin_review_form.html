@@ -1,0 +1,57 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - Sửa đánh giá{% endblock %}
+{% block admin_content %}
+  <div class="card admin-card">
+    <h2 style="margin-top:0;">Sửa đánh giá #{{ review.id }}</h2>
+    <div class="muted" style="margin-bottom:14px;">Sản phẩm: <b>{{ review.san_pham.ten }}</b> • Khách hàng: <b>{{ review.user.username }}</b></div>
+
+    <form method="post" enctype="multipart/form-data" style="display:grid;gap:14px;max-width:760px;">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="alert">{{ form.non_field_errors }}</div>{% endif %}
+
+      <div>
+        <label class="label">{{ form.rating.label }}</label>
+        {{ form.rating }}
+        {{ form.rating.errors }}
+      </div>
+      <div>
+        <label class="label">{{ form.title.label }}</label>
+        {{ form.title }}
+        {{ form.title.errors }}
+      </div>
+      <div>
+        <label class="label">{{ form.comment.label }}</label>
+        {{ form.comment }}
+        {{ form.comment.errors }}
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;">
+        {{ form.is_visible }}
+        <span>{{ form.is_visible.label }}</span>
+      </label>
+      {{ form.is_visible.errors }}
+
+      <div>
+        <label class="label">{{ form.new_images.label }}</label>
+        {{ form.new_images }}
+        {{ form.new_images.errors }}
+        <div class="muted" style="margin-top:6px;">Ảnh mới sẽ được thêm vào đánh giá hiện tại. Mỗi đánh giá tối đa 5 ảnh.</div>
+      </div>
+
+      {% if review.images.all %}
+        <div>
+          <div class="label">Ảnh hiện tại</div>
+          <div class="admin-review-image-grid">
+            {% for image in review.images.all %}
+              <a href="{{ image.image.url }}" target="_blank"><img src="{{ image.image.url }}" alt="Ảnh đánh giá"></a>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="row" style="gap:10px;flex-wrap:wrap;">
+        <button class="btn primary" type="submit">Lưu thay đổi</button>
+        <a class="btn" href="{% url 'admin_review_detail' review.id %}">Quay lại</a>
+      </div>
+    </form>
+  </div>
+{% endblock %}

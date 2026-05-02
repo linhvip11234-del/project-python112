@@ -403,6 +403,72 @@
     @media(max-width:760px){
       .notify-panel{right:-70px;}
     }
+  
+    /* Fix: cho khung thông báo nổi trên banner/hero */
+    .topbar,
+    .header,
+    .nav{
+      position:relative;
+      z-index:10020;
+      overflow:visible !important;
+    }
+    .header .container,
+    .header .row,
+    .actions{
+      overflow:visible !important;
+    }
+    .order-notify{
+      z-index:10050 !important;
+    }
+    .notify-panel{
+      z-index:10060 !important;
+      max-height:430px !important;
+    }
+    .notify-list{
+      max-height:300px !important;
+    }
+    .notify-item{
+      cursor:pointer;
+    }
+    @media(max-width:760px){
+      .notify-panel{
+        position:fixed !important;
+        right:12px !important;
+        top:86px !important;
+        width:calc(100vw - 24px) !important;
+        max-height:70vh !important;
+      }
+      .notify-list{
+        max-height:calc(70vh - 58px) !important;
+      }
+    }
+
+  
+    /* Fix lần 2: dropdown thông báo dùng fixed, không bị nav/banner đè */
+    .header{z-index:10040 !important;}
+    .nav{z-index:10010 !important;}
+    .notify-panel{
+      position:fixed !important;
+      top:86px !important;
+      right:auto !important;
+      left:auto !important;
+      z-index:2147483000 !important;
+      width:360px !important;
+      max-width:calc(100vw - 24px) !important;
+      max-height:calc(100vh - 110px) !important;
+    }
+    .notify-list{
+      max-height:calc(100vh - 185px) !important;
+    }
+    @media(max-width:760px){
+      .notify-panel{
+        top:82px !important;
+        left:12px !important;
+        right:12px !important;
+        width:calc(100vw - 24px) !important;
+      }
+    }
+
   </style>
 
 </head>
@@ -472,7 +538,7 @@
         <a href="{% url 'home' %}?q=Dây">Dây chuyền</a>
         <a href="{% url 'home' %}?q=Lắc tay">Lắc tay</a>
         <a href="{% url 'flash_sale_products' %}">Flash Sale</a>
-        <a href="{% url 'home' %}?q=Bộ Lumière">Bộ Lumière</a>
+        <a href="{% url 'home' %}?q=Bộ trang sức">Bộ trang sức</a>
       </div>
     </div>
   </div>
@@ -783,10 +849,31 @@
         }
       }
 
+      function positionNotifyPanel(){
+        if(!panel || !bell) return;
+        const rect = bell.getBoundingClientRect();
+        const panelWidth = Math.min(360, window.innerWidth - 24);
+        let left = rect.right - panelWidth;
+        left = Math.max(12, Math.min(left, window.innerWidth - panelWidth - 12));
+        panel.style.left = left + 'px';
+        panel.style.top = (rect.bottom + 10) + 'px';
+        panel.style.right = 'auto';
+      }
+
       bell.addEventListener('click', function(event){
         event.stopPropagation();
         wrap.classList.toggle('open');
+        if(wrap.classList.contains('open')){
+          positionNotifyPanel();
+          setTimeout(positionNotifyPanel, 30);
+        }
         loadNotifications(false);
+      });
+
+      window.addEventListener('resize', function(){
+        if(wrap.classList.contains('open')){
+          positionNotifyPanel();
+        }
       });
 
       if(markRead){

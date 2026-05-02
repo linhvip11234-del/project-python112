@@ -84,6 +84,13 @@
           <div style="color:#d18a00;">{{ review.stars }}</div>
           {% if review.title %}<div><b>{{ review.title }}</b></div>{% endif %}
           <div class="muted">{{ review.comment|linebreaksbr }}</div>
+          {% if review.images.all %}
+            <div class="review-image-grid">
+              {% for image in review.images.all %}
+                <a href="{{ image.image.url }}" target="_blank" class="review-image-thumb"><img src="{{ image.image.url }}" alt="Ảnh đánh giá"></a>
+              {% endfor %}
+            </div>
+          {% endif %}
         </div>
       {% empty %}
         <div class="muted">Chưa có đánh giá nào cho sản phẩm này.</div>
@@ -93,11 +100,12 @@
     <div class="card" style="padding:18px;flex:0 0 360px;max-width:100%;">
       <h3 style="margin-top:0;">Viết đánh giá</h3>
       {% if user.is_authenticated and can_review %}
-        <form method="post" style="display:grid;gap:12px;">
+        <form method="post" enctype="multipart/form-data" style="display:grid;gap:12px;">
           {% csrf_token %}
           <div><div class="label">Số sao</div>{{ review_form.rating }}{{ review_form.rating.errors }}</div>
           <div><div class="label">Tiêu đề</div>{{ review_form.title }}{{ review_form.title.errors }}</div>
           <div><div class="label">Nội dung</div>{{ review_form.comment }}{{ review_form.comment.errors }}</div>
+          <div><div class="label">Ảnh đánh giá (tối đa 5 ảnh)</div>{{ review_form.images }}{{ review_form.images.errors }}</div>
           <button class="btn primary" type="submit">Gửi đánh giá</button>
         </form>
       {% elif user.is_authenticated %}

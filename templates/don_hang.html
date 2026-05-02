@@ -113,7 +113,7 @@
         </div>
       </div>
 
-      <form method="post" action="{% url 'quick_review_order' review_popup_order.id %}" style="display:grid;gap:12px;">
+      <form method="post" enctype="multipart/form-data" action="{% url 'quick_review_order' review_popup_order.id %}" style="display:grid;gap:12px;">
         {% csrf_token %}
         <div>
           <div class="label">Số sao</div>
@@ -126,6 +126,10 @@
         <div>
           <div class="label">Nội dung</div>
           {{ review_popup_form.comment }}
+        </div>
+        <div>
+          <div class="label">Ảnh đánh giá (tối đa 5 ảnh)</div>
+          {{ review_popup_form.images }}
         </div>
         <div class="row" style="gap:10px;justify-content:flex-end;flex-wrap:wrap;">
           <button type="button" class="btn" onclick="document.getElementById('reviewPaymentModal').style.display='none'">Để sau</button>

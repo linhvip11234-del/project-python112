@@ -72,6 +72,12 @@ urlpatterns = [
     path("admin-panel/lo-hang/", views.admin_batch_list, name="admin_batch_list"),
     path("admin-panel/lo-hang/<int:batch_id>/", views.admin_batch_detail, name="admin_batch_detail"),
 
+    path("admin-panel/danh-gia/", views.admin_review_list, name="admin_review_list"),
+    path("admin-panel/danh-gia/<int:review_id>/", views.admin_review_detail, name="admin_review_detail"),
+    path("admin-panel/danh-gia/<int:review_id>/sua/", views.admin_review_edit, name="admin_review_edit"),
+    path("admin-panel/danh-gia/<int:review_id>/an-hien/", views.admin_review_toggle, name="admin_review_toggle"),
+    path("admin-panel/danh-gia/anh/<int:image_id>/xoa/", views.admin_review_image_delete, name="admin_review_image_delete"),
+    path("admin-panel/danh-gia/<int:review_id>/xoa/", views.admin_review_delete, name="admin_review_delete"),
     path("admin-panel/don-hang/", views.admin_donhang_list, name="admin_donhang_list"),
     path("admin-panel/don-hang/them/", views.admin_donhang_create, name="admin_donhang_create"),
     path("admin-panel/don-hang/<int:don_id>/", views.admin_donhang_detail, name="admin_donhang_detail"),

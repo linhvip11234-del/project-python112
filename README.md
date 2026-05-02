@@ -25,13 +25,13 @@ Demo website bán Lumière bằng Django, đã bổ sung thêm các yêu cầu t
 - User đặt hàng → **Pending**
 - User có thể chuyển **Pending → Confirmed** hoặc **Pending/Confirmed → Cancelled**
 - Admin có thể duyệt theo luồng hợp lệ như:
-  - `Pending -> Confirmed / Approved / Rejected / Cancelled`
-  - `Confirmed -> Approved / Rejected / Cancelled`
+  - `Pending -> Confirmed / Completed / Rejected / Cancelled`
+  - `Confirmed -> Completed / Rejected / Cancelled`
 - Hệ thống chặn các chuyển trạng thái sai nghiệp vụ
 
 ### 5) Trạng thái dữ liệu
 - Sản phẩm: `active / inactive`
-- Đơn hàng: `Pending / Confirmed / Approved / Rejected / Cancelled`
+- Đơn hàng: `Pending / Confirmed / Completed / Rejected / Cancelled`
 - User: `active / inactive`
 
 ### 6) Upload file/ảnh có validate

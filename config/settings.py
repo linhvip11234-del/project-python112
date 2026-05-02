@@ -3,9 +3,9 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = "demo-secret-key-change-me"
-DEBUG = True
-ALLOWED_HOSTS = ["*"]
+SECRET_KEY = os.getenv("SECRET_KEY", "demo-secret-key-change-me")
+DEBUG = os.getenv("DEBUG", "True").lower() == "true"
+ALLOWED_HOSTS = ["*", ".trycloudflare.com"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -90,8 +90,8 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-EMAIL_HOST_USER = 'linhvip11234@gmail.com'
-EMAIL_HOST_PASSWORD = 'hlabvtsuvwshyudw'
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "lumire@gmail.com")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
@@ -106,10 +106,6 @@ REST_FRAMEWORK = {
 
 # Cloudflare Tunnel / public demo config
 # Cho phép demo public bằng trycloudflare.com và tránh lỗi CSRF 403 khi POST form.
-ALLOWED_HOSTS = [
-    "*",
-    ".trycloudflare.com",
-]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://*.trycloudflare.com",

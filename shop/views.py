@@ -26,6 +26,7 @@ from .decorators import admin_required
 from .forms import (
     AdminDonHangForm,
     AdminInventoryAdjustForm,
+    AdminProductReviewForm,
     AdminUserForm,
     DatHangForm,
     ProductReviewForm,
@@ -39,7 +40,7 @@ from .forms import (
     SupplierForm,
     VoucherAdminForm,
 )
-from .models import CartItem, DonHang, InventoryBatch, InventoryHistory, NhaCungCap, PhieuNhapKho, ProductImage, ProductReview, SECURITY_QUESTION_MAP, OrderStatusHistory, SanPham, SavedAddress, UserSecurityProfile, Voucher, WalletTopUpRequest, WalletTransaction
+from .models import CartItem, DonHang, InventoryBatch, InventoryHistory, NhaCungCap, PhieuNhapKho, ProductImage, ProductReview, ProductReviewImage, SECURITY_QUESTION_MAP, OrderStatusHistory, SanPham, SavedAddress, UserSecurityProfile, Voucher, WalletTopUpRequest, WalletTransaction
 from .services import (
     BATCH_SORTS,
     INVENTORY_SORTS,
@@ -92,6 +93,21 @@ PASSWORD_RESET_SESSION_KEY = "password_reset_otp"
 PASSWORD_RESET_USER_SESSION_KEY = "password_reset_user"
 PASSWORD_RESET_OTP_EXPIRE_SECONDS = 300
 REVIEW_POPUP_SESSION_KEY = "review_popup_order_ids"
+REVIEW_IMAGE_LIMIT = 5
+
+
+def _attach_review_images(review, images):
+    images = list(images or [])
+    if not images:
+        return 0, 0
+    existing = review.images.count()
+    remaining = max(REVIEW_IMAGE_LIMIT - existing, 0)
+    saved = 0
+    skipped = max(len(images) - remaining, 0)
+    for image in images[:remaining]:
+        ProductReviewImage.objects.create(review=review, image=image)
+        saved += 1
+    return saved, skipped
 
 
 def _queue_review_popup_orders(request, order_ids):
@@ -450,7 +466,7 @@ def chi_tiet_san_pham(request, sp_id):
             nguoi_dat=request.user,
             san_pham=sp,
         ).filter(
-            models.Q(da_thanh_toan=True) | models.Q(trang_thai__in=["Confirmed", "Approved"])
+            models.Q(da_thanh_toan=True) | models.Q(trang_thai__in=["Confirmed", "Shipping", "Completed"])
         ).exists()
 
     if request.method == "POST":
@@ -461,7 +477,7 @@ def chi_tiet_san_pham(request, sp_id):
             messages.error(request, "Chỉ khách đã mua sản phẩm mới có thể viết đánh giá.")
             return redirect("chi_tiet_san_pham", sp_id=sp.id)
 
-        review_form = ProductReviewForm(request.POST)
+        review_form = ProductReviewForm(request.POST, request.FILES)
         if review_form.is_valid():
             review, created = ProductReview.objects.update_or_create(
                 san_pham=sp,
@@ -473,7 +489,11 @@ def chi_tiet_san_pham(request, sp_id):
                     "is_visible": True,
                 },
             )
-            messages.success(request, "Đã gửi đánh giá sản phẩm." if created else "Đã cập nhật đánh giá của bạn.")
+            saved_images, skipped_images = _attach_review_images(review, review_form.cleaned_data.get("images"))
+            if skipped_images:
+                messages.warning(request, f"Đã lưu đánh giá, nhưng chỉ lưu thêm {saved_images} ảnh vì mỗi đánh giá tối đa {REVIEW_IMAGE_LIMIT} ảnh.")
+            else:
+                messages.success(request, "Đã gửi đánh giá sản phẩm." if created else "Đã cập nhật đánh giá của bạn.")
             return redirect("chi_tiet_san_pham", sp_id=sp.id)
     else:
         initial = {}
@@ -481,7 +501,7 @@ def chi_tiet_san_pham(request, sp_id):
             initial = {"rating": existing_review.rating, "title": existing_review.title, "comment": existing_review.comment}
         review_form = ProductReviewForm(initial=initial)
 
-    reviews = sp.reviews.filter(is_visible=True).select_related("user")
+    reviews = sp.reviews.filter(is_visible=True).select_related("user").prefetch_related("images")
     san_pham_goi_y = list(_annotated_catalog_queryset(SanPham.objects.filter(trang_thai="active").exclude(id=sp.id).order_by("-id")[:4]))
     gallery_images = list(sp.gallery_images)
     return render(request, "chi_tiet_san_pham.html", {
@@ -840,22 +860,67 @@ def dat_hang(request, san_pham_id):
     return render(request, "dat_hang.html", _build_checkout_context(user=request.user, form=form, items=item_preview, source="single", product=sp))
 
 
+def _parse_selected_cart_item_ids(request):
+    raw_ids = request.POST.getlist("selected_items") if request.method == "POST" else request.GET.getlist("selected_items")
+    ids = []
+    for value in raw_ids:
+        try:
+            ids.append(int(value))
+        except (TypeError, ValueError):
+            continue
+    return ids
+
+
 @login_required
-# Checkout từ giỏ hàng: tạo đơn hàng từ các item trong giỏ của người dùng.
+# Checkout từ giỏ hàng: tạo đơn từ các item được tích chọn trong giỏ.
 def thanh_toan_gio_hang(request):
     seed_sample_products()
     seed_sample_vouchers()
-    cart_items = list(get_cart_items(request.user))
-    if not cart_items:
+    all_cart_items = list(get_cart_items(request.user))
+    if not all_cart_items:
         messages.error(request, "Giỏ hàng của bạn đang trống.")
         return redirect("gio_hang")
 
-    default_address = get_default_saved_address(request.user)
-    initial = {"ho_ten": request.user.get_full_name() or request.user.username, "so_luong": 1, "phuong_thuc_tt": "COD"}
-    if default_address:
-        initial.update({"saved_address_id": str(default_address.id), "ho_ten": default_address.ho_ten, "sdt": default_address.sdt, "dia_chi": default_address.dia_chi})
-    form = DatHangForm(request.POST or None, initial=initial if request.method == "GET" else None, user=request.user)
-    checkout_items = [{"product": item.san_pham, "quantity": item.quantity, "subtotal": item.thanh_tien} for item in cart_items]
+    selected_item_ids = _parse_selected_cart_item_ids(request)
+    selection_submitted = request.GET.get("selection_submitted") == "1"
+
+    # Nếu người dùng bấm thanh toán từ giỏ mà không tích sản phẩm nào.
+    if request.method == "GET" and selection_submitted and not selected_item_ids:
+        messages.error(request, "Bạn cần tích chọn ít nhất một sản phẩm để thanh toán.")
+        return redirect("gio_hang")
+
+    # Truy cập trực tiếp trang thanh toán cũ thì mặc định chọn toàn bộ để không vỡ luồng cũ.
+    if request.method == "GET" and not selected_item_ids:
+        selected_item_ids = [item.id for item in all_cart_items]
+
+    if request.method == "POST" and not selected_item_ids:
+        form = DatHangForm(request.POST or None, user=request.user)
+        form.add_error(None, "Bạn cần tích chọn ít nhất một sản phẩm để thanh toán.")
+        selected_cart_items = []
+    else:
+        selected_cart_items = [item for item in all_cart_items if item.id in selected_item_ids]
+        if not selected_cart_items:
+            messages.error(request, "Các sản phẩm đã chọn không còn trong giỏ hàng.")
+            return redirect("gio_hang")
+
+        default_address = get_default_saved_address(request.user)
+        initial = {"ho_ten": request.user.get_full_name() or request.user.username, "so_luong": 1, "phuong_thuc_tt": "COD"}
+        voucher_from_cart = request.GET.get("voucher", "").strip().upper()
+        if voucher_from_cart:
+            initial["voucher_code"] = voucher_from_cart
+        if default_address:
+            initial.update({"saved_address_id": str(default_address.id), "ho_ten": default_address.ho_ten, "sdt": default_address.sdt, "dia_chi": default_address.dia_chi})
+        form = DatHangForm(request.POST or None, initial=initial if request.method == "GET" else None, user=request.user)
+
+    checkout_items = [
+        {
+            "cart_item_id": item.id,
+            "product": item.san_pham,
+            "quantity": item.quantity,
+            "subtotal": item.thanh_tien,
+        }
+        for item in selected_cart_items
+    ]
 
     if request.method == "POST" and form.is_valid():
         selected_address = form.cleaned_data.get("saved_address_id")
@@ -864,24 +929,25 @@ def thanh_toan_gio_hang(request):
             form.cleaned_data["sdt"] = selected_address.sdt
             form.cleaned_data["dia_chi"] = selected_address.dia_chi
         try:
-            orders = create_orders_from_cart(user=request.user, cleaned_data=form.cleaned_data)
+            orders = create_orders_from_cart(user=request.user, cleaned_data=form.cleaned_data, cart_item_ids=selected_item_ids)
         except ValidationError as exc:
             form.add_error(None, exc.message if hasattr(exc, "message") else str(exc))
         else:
             save_user_address(user=request.user, cleaned_data=form.cleaned_data)
             if orders and orders[0].phuong_thuc_tt == "ChuyenKhoan":
-                messages.success(request, f"Đã tạo {len(orders)} đơn hàng từ giỏ hàng. Hãy thanh toán lần lượt bằng QR cho từng đơn.")
+                messages.success(request, f"Đã tạo {len(orders)} đơn hàng từ các sản phẩm đã chọn. Hãy thanh toán lần lượt bằng QR cho từng đơn.")
             else:
                 paid_order_ids = [order.id for order in orders if order.da_thanh_toan]
                 if paid_order_ids:
                     _queue_review_popup_orders(request, paid_order_ids)
-                    messages.success(request, f"Thanh toán thành công {len(paid_order_ids)} đơn hàng từ giỏ hàng. Bạn có thể đánh giá sản phẩm ngay.")
+                    messages.success(request, f"Thanh toán thành công {len(paid_order_ids)} đơn hàng đã chọn. Bạn có thể đánh giá sản phẩm ngay.")
                 else:
-                    messages.success(request, f"Đã tạo thành công {len(orders)} đơn hàng từ giỏ hàng.")
+                    messages.success(request, f"Đã tạo thành công {len(orders)} đơn hàng từ các sản phẩm đã chọn.")
             return redirect("ds_don")
 
-    return render(request, "dat_hang.html", _build_checkout_context(user=request.user, form=form, items=checkout_items, source="cart"))
-
+    context = _build_checkout_context(user=request.user, form=form, items=checkout_items, source="cart")
+    context["selected_cart_item_ids"] = selected_item_ids
+    return render(request, "dat_hang.html", context)
 
 @login_required
 # Ví điện tử: hiển thị số dư, lịch sử giao dịch và các thao tác liên quan đến ví.
@@ -1282,14 +1348,14 @@ def ds_don(request):
         reviewed_product_ids = ProductReview.objects.filter(user=request.user).values_list("san_pham_id", flat=True)
         review_popup_order = (
             DonHang.objects.filter(nguoi_dat=request.user)
-            .filter(models.Q(da_thanh_toan=True) | models.Q(trang_thai__in=["Confirmed", "Approved"]))
+            .filter(models.Q(da_thanh_toan=True) | models.Q(trang_thai__in=["Confirmed", "Shipping", "Completed"]))
             .exclude(san_pham_id__in=reviewed_product_ids)
             .select_related("san_pham")
             .order_by("-thanh_toan_luc", "-id")
             .first()
         )
 
-    if review_popup_order and (review_popup_order.da_thanh_toan or review_popup_order.trang_thai in {"Confirmed", "Approved"}):
+    if review_popup_order and (review_popup_order.da_thanh_toan or review_popup_order.trang_thai in {"Confirmed", "Shipping", "Completed"}):
         existing_review = ProductReview.objects.filter(san_pham=review_popup_order.san_pham, user=request.user).first()
         initial = {}
         if existing_review:
@@ -1368,11 +1434,11 @@ def quick_review_order(request, don_id):
         return redirect("ds_don")
 
     don = get_object_or_404(DonHang.objects.select_related("san_pham"), id=don_id, nguoi_dat=request.user)
-    if not (don.da_thanh_toan or don.trang_thai in {"Confirmed", "Approved"}):
+    if not (don.da_thanh_toan or don.trang_thai in {"Confirmed", "Shipping", "Completed"}):
         messages.error(request, "Đơn hàng này chưa đủ điều kiện để gửi đánh giá.")
         return redirect("ds_don")
 
-    review_form = ProductReviewForm(request.POST)
+    review_form = ProductReviewForm(request.POST, request.FILES)
     if not review_form.is_valid():
         _queue_review_popup_orders(request, [don.id])
         messages.error(request, "Vui lòng nhập đủ nội dung đánh giá trước khi gửi.")
@@ -1388,7 +1454,11 @@ def quick_review_order(request, don_id):
             "is_visible": True,
         },
     )
-    messages.success(request, "Đã gửi đánh giá sản phẩm." if created else "Đã cập nhật đánh giá của bạn.")
+    saved_images, skipped_images = _attach_review_images(review, review_form.cleaned_data.get("images"))
+    if skipped_images:
+        messages.warning(request, f"Đã lưu đánh giá, nhưng chỉ lưu thêm {saved_images} ảnh vì mỗi đánh giá tối đa {REVIEW_IMAGE_LIMIT} ảnh.")
+    else:
+        messages.success(request, "Đã gửi đánh giá sản phẩm." if created else "Đã cập nhật đánh giá của bạn.")
     return redirect("ds_don")
 
 
@@ -1429,7 +1499,7 @@ def ds_don_admin(request):
 # Admin thao tác nhanh với đơn hàng: duyệt, từ chối hoặc đổi trạng thái theo action truyền vào.
 def duyet_don(request, don_id, hanh_dong):
     don = get_object_or_404(DonHang, id=don_id)
-    new_status = "Approved" if hanh_dong == "approve" else "Rejected"
+    new_status = "Confirmed" if hanh_dong == "approve" else "Rejected"
     ok, message = update_order_status(order=don, new_status=new_status, actor_role="admin", actor=request.user)
     if ok:
         messages.success(request, message)
@@ -1446,7 +1516,8 @@ def admin_dashboard(request):
     tong_sp_inactive = SanPham.objects.filter(trang_thai="inactive").count()
     tong_don = DonHang.objects.count()
     cho_xac_nhan = DonHang.objects.filter(trang_thai="Pending").count()
-    da_duyet = DonHang.objects.filter(trang_thai="Approved").count()
+    dang_giao = DonHang.objects.filter(trang_thai="Shipping").count()
+    hoan_thanh = DonHang.objects.filter(trang_thai="Completed").count()
     da_huy = DonHang.objects.filter(trang_thai="Cancelled").count()
     nap_cho_duyet = WalletTopUpRequest.objects.filter(status__in=["pending", "paid"]).count()
     nap_hoan_tat = WalletTopUpRequest.objects.filter(status="approved").count()
@@ -1489,7 +1560,8 @@ def admin_dashboard(request):
             "tong_sp_inactive": tong_sp_inactive,
             "tong_don": tong_don,
             "cho_xac_nhan": cho_xac_nhan,
-            "da_duyet": da_duyet,
+            "dang_giao": dang_giao,
+            "hoan_thanh": hoan_thanh,
             "da_huy": da_huy,
             "nap_cho_duyet": nap_cho_duyet,
             "nap_hoan_tat": nap_hoan_tat,
@@ -1906,8 +1978,13 @@ def admin_donhang_edit(request, don_id):
 def admin_donhang_delete(request, don_id):
     don = get_object_or_404(DonHang.objects.select_related("nguoi_dat", "san_pham"), id=don_id)
     if request.method == "POST":
-        don.delete()
-        messages.success(request, f"Đã xoá đơn hàng #{don.id}.")
+        # Không xóa cứng đơn hàng để tránh mất lịch sử nghiệp vụ và lệch tồn kho.
+        # Thay vào đó chuyển đơn sang trạng thái Đã hủy nếu còn được phép.
+        ok, message = update_order_status(order=don, new_status="Cancelled", actor_role="admin", actor=request.user)
+        if ok:
+            messages.success(request, f"Đã hủy đơn hàng #{don.id}. {message}")
+        else:
+            messages.error(request, message)
         return redirect("admin_donhang_list")
     return render(request, "admin_donhang_delete.html", {"don": don})
 
@@ -2271,7 +2348,7 @@ def _chatbot_context_for_user(request, message: str) -> str:
         "- Thanh toán hỗ trợ COD, chuyển khoản/QR mô phỏng và ví điện tử.",
         "- Voucher áp dụng nếu còn hiệu lực, còn lượt dùng và đạt đơn tối thiểu.",
         "- Nạp ví: user tạo yêu cầu, admin duyệt thì số dư ví tăng.",
-        "- Đơn hàng có trạng thái: Chờ xác nhận, Đã xác nhận, Đã duyệt, Từ chối, Đã hủy.",
+        "- Đơn hàng có trạng thái: Chờ xác nhận, Đã xác nhận, Đang giao, Hoàn thành, Đã hủy.",
         "- Đánh giá sản phẩm chỉ dành cho người dùng đã mua sản phẩm.",
         "- Liên hệ: Hotline 0347062159, Email lumire@gmail.com, địa chỉ Thái Nguyên.",
     ]
@@ -2480,7 +2557,7 @@ def _smart_local_chatbot_reply(message: str, context: str, request) -> str:
                 return "\n".join(lines)
         return (
             "Anh/Chị vào mục Đơn hàng để xem trạng thái. "
-            "Các trạng thái chính gồm: Chờ xác nhận, Đã xác nhận, Đã duyệt, Từ chối và Đã hủy. "
+            "Các trạng thái chính gồm: Chờ xác nhận, Đã xác nhận, Đang giao, Hoàn thành và Đã hủy. "
             "Nếu chưa đăng nhập, Anh/Chị cần đăng nhập để xem đơn của mình."
         )
 
@@ -2513,10 +2590,6 @@ def _smart_local_chatbot_reply(message: str, context: str, request) -> str:
         "Em chưa chắc mình hiểu đúng ý Anh/Chị. "
         "Anh/Chị có thể hỏi rõ hơn theo các chủ đề như: tìm sản phẩm, tư vấn mua Lumière, cách đặt hàng, thanh toán, nạp ví, voucher, đơn hàng hoặc quản lý kho ạ."
     )
-
-
-@csrf_exempt
-
 
 
 @login_required
@@ -2571,6 +2644,7 @@ def order_notifications_api(request):
         "items": items,
     })
 
+@csrf_exempt
 def chatbot_api(request):
     """API chatbot AI cho website bán Lumière.
 
@@ -2624,4 +2698,128 @@ def chatbot_api(request):
         "quick_replies": quick_replies,
         "mode": "local_ai_fallback"
     })
+
+@admin_required
+# Admin đánh giá: danh sách đánh giá sản phẩm, có lọc theo sao, trạng thái hiển thị và tìm kiếm.
+def admin_review_list(request):
+    q = request.GET.get("q", "").strip()
+    rating = request.GET.get("rating", "").strip()
+    visible = request.GET.get("visible", "").strip()
+    has_image = request.GET.get("has_image", "").strip()
+    sort = request.GET.get("sort", "newest").strip()
+
+    sort_map = {
+        "newest": ["-created_at", "-id"],
+        "oldest": ["created_at", "id"],
+        "rating_high": ["-rating", "-created_at"],
+        "rating_low": ["rating", "-created_at"],
+        "product_asc": ["san_pham__ten", "-created_at"],
+        "user_asc": ["user__username", "-created_at"],
+    }
+    if sort not in sort_map:
+        sort = "newest"
+
+    ds = ProductReview.objects.select_related("san_pham", "user").prefetch_related("images")
+    if q:
+        ds = ds.filter(
+            models.Q(title__icontains=q)
+            | models.Q(comment__icontains=q)
+            | models.Q(san_pham__ten__icontains=q)
+            | models.Q(user__username__icontains=q)
+            | models.Q(user__email__icontains=q)
+        )
+    if rating in {"1", "2", "3", "4", "5"}:
+        ds = ds.filter(rating=int(rating))
+    if visible == "1":
+        ds = ds.filter(is_visible=True)
+    elif visible == "0":
+        ds = ds.filter(is_visible=False)
+    if has_image == "1":
+        ds = ds.filter(images__isnull=False).distinct()
+    elif has_image == "0":
+        ds = ds.filter(images__isnull=True)
+    ds = ds.order_by(*sort_map[sort])
+
+    return render(request, "admin_review_list.html", {
+        "ds": ds,
+        "q": q,
+        "rating": rating,
+        "visible": visible,
+        "has_image": has_image,
+        "sort": sort,
+        "sort_choices": [
+            ("newest", "Mới nhất"),
+            ("oldest", "Cũ nhất"),
+            ("rating_high", "Sao cao nhất"),
+            ("rating_low", "Sao thấp nhất"),
+            ("product_asc", "Sản phẩm A-Z"),
+            ("user_asc", "User A-Z"),
+        ],
+        "total_reviews": ProductReview.objects.count(),
+        "visible_reviews": ProductReview.objects.filter(is_visible=True).count(),
+        "hidden_reviews": ProductReview.objects.filter(is_visible=False).count(),
+        "image_reviews": ProductReview.objects.filter(images__isnull=False).distinct().count(),
+        "avg_rating": ProductReview.objects.aggregate(avg=Avg("rating")).get("avg") or 0,
+    })
+
+
+@admin_required
+# Admin đánh giá: xem chi tiết 1 đánh giá của khách hàng.
+def admin_review_detail(request, review_id):
+    review = get_object_or_404(ProductReview.objects.select_related("san_pham", "user").prefetch_related("images"), id=review_id)
+    same_product_reviews = ProductReview.objects.filter(san_pham=review.san_pham).exclude(id=review.id).select_related("user").prefetch_related("images")[:6]
+    return render(request, "admin_review_detail.html", {"review": review, "same_product_reviews": same_product_reviews})
+
+
+@admin_required
+# Admin đánh giá: chỉnh sửa số sao, nội dung hoặc trạng thái hiển thị.
+def admin_review_edit(request, review_id):
+    review = get_object_or_404(ProductReview.objects.select_related("san_pham", "user"), id=review_id)
+    form = AdminProductReviewForm(request.POST or None, request.FILES or None, instance=review)
+    if request.method == "POST" and form.is_valid():
+        review = form.save()
+        saved_images, skipped_images = _attach_review_images(review, form.cleaned_data.get("new_images"))
+        if skipped_images:
+            messages.warning(request, f"Đã cập nhật đánh giá, nhưng chỉ lưu thêm {saved_images} ảnh vì mỗi đánh giá tối đa {REVIEW_IMAGE_LIMIT} ảnh.")
+        else:
+            messages.success(request, f"Đã cập nhật đánh giá #{review.id}.")
+        return redirect("admin_review_detail", review_id=review.id)
+    return render(request, "admin_review_form.html", {"form": form, "review": review})
+
+
+@admin_required
+# Admin đánh giá: bật/tắt hiển thị đánh giá nhanh từ danh sách hoặc trang chi tiết.
+def admin_review_toggle(request, review_id):
+    if request.method != "POST":
+        return redirect("admin_review_detail", review_id=review_id)
+    review = get_object_or_404(ProductReview, id=review_id)
+    review.is_visible = not review.is_visible
+    review.save(update_fields=["is_visible", "updated_at"])
+    messages.success(request, "Đã bật hiển thị đánh giá." if review.is_visible else "Đã ẩn đánh giá khỏi website.")
+    next_url = request.POST.get("next") or reverse("admin_review_detail", args=[review.id])
+    return redirect(next_url)
+
+
+@admin_required
+# Admin đánh giá: xóa riêng 1 ảnh trong đánh giá.
+def admin_review_image_delete(request, image_id):
+    image = get_object_or_404(ProductReviewImage.objects.select_related("review"), id=image_id)
+    review_id = image.review_id
+    if request.method == "POST":
+        if image.image:
+            image.image.delete(save=False)
+        image.delete()
+        messages.success(request, "Đã xóa ảnh đánh giá.")
+    return redirect("admin_review_detail", review_id=review_id)
+
+
+@admin_required
+# Admin đánh giá: xóa vĩnh viễn đánh giá.
+def admin_review_delete(request, review_id):
+    review = get_object_or_404(ProductReview.objects.select_related("san_pham", "user"), id=review_id)
+    if request.method == "POST":
+        review.delete()
+        messages.success(request, "Đã xóa đánh giá.")
+        return redirect("admin_review_list")
+    return render(request, "admin_review_delete.html", {"review": review})
 

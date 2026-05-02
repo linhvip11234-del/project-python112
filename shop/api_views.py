@@ -83,6 +83,17 @@ class ProductReviewCreateApiView(generics.CreateAPIView):
 
     def create(self, request, *args, **kwargs):
         product = generics.get_object_or_404(SanPham, pk=self.kwargs["pk"])
+
+        has_purchased = DonHang.objects.filter(
+            nguoi_dat=request.user,
+            san_pham=product,
+        ).filter(
+            models.Q(da_thanh_toan=True) | models.Q(trang_thai__in=["Confirmed", "Shipping", "Completed"])
+        ).exists()
+
+        if not has_purchased:
+            return Response({"detail": "Bạn chỉ có thể đánh giá sản phẩm đã mua."}, status=400)
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         review, _ = ProductReview.objects.update_or_create(

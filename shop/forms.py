@@ -13,6 +13,7 @@ from .services import calculate_order_total, can_transition
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif"}
 MAX_UPLOAD_SIZE = 2 * 1024 * 1024  # 2MB
+MAX_REVIEW_IMAGES = 5
 
 
 class MultipleFileInput(forms.ClearableFileInput):
@@ -461,16 +462,34 @@ class ProductReviewForm(BaseStyledForm):
     rating = forms.ChoiceField(choices=[(str(i), f"{i} sao") for i in range(5, 0, -1)], initial="5")
     title = forms.CharField(max_length=120, required=False, widget=forms.TextInput(attrs={"placeholder": "Tiêu đề đánh giá (không bắt buộc)"}))
     comment = forms.CharField(required=False, widget=forms.Textarea(attrs={"placeholder": "Chia sẻ trải nghiệm của bạn về sản phẩm", "rows": 4}))
+    images = MultipleFileField(required=False, widget=MultipleFileInput(attrs={"accept": ".jpg,.jpeg,.png,.webp,.gif,image/*", "multiple": True}))
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._apply_common_css()
+        self.fields["images"].widget.attrs["class"] = "input"
 
     def clean_rating(self):
         rating = int(self.cleaned_data.get("rating") or 0)
         if rating < 1 or rating > 5:
             raise ValidationError("Số sao phải từ 1 đến 5.")
         return rating
+
+    def clean_images(self):
+        images = self.cleaned_data.get("images") or []
+        if len(images) > MAX_REVIEW_IMAGES:
+            raise ValidationError(f"Bạn chỉ được tải tối đa {MAX_REVIEW_IMAGES} ảnh cho mỗi lần gửi đánh giá.")
+        for image in images:
+            ten_file = getattr(image, "name", "")
+            ext = ten_file.rsplit(".", 1)[-1].lower() if "." in ten_file else ""
+            if ext not in ALLOWED_IMAGE_EXTENSIONS:
+                raise ValidationError("Ảnh đánh giá chỉ cho phép JPG, JPEG, PNG, WEBP hoặc GIF.")
+            if getattr(image, "size", 0) > MAX_UPLOAD_SIZE:
+                raise ValidationError("Mỗi ảnh đánh giá phải nhỏ hơn 2MB.")
+            content_type = getattr(image, "content_type", "")
+            if content_type and not content_type.startswith("image/"):
+                raise ValidationError("Vui lòng tải tệp ảnh hợp lệ.")
+        return images
 
     def clean(self):
         cleaned_data = super().clean()
@@ -481,6 +500,66 @@ class ProductReviewForm(BaseStyledForm):
         cleaned_data["title"] = title
         cleaned_data["comment"] = comment
         return cleaned_data
+
+class AdminProductReviewForm(forms.ModelForm):
+    new_images = MultipleFileField(required=False, label="Thêm ảnh đánh giá", widget=MultipleFileInput(attrs={"class": "input", "accept": ".jpg,.jpeg,.png,.webp,.gif,image/*", "multiple": True}))
+
+    class Meta:
+        model = ProductReview
+        fields = ["rating", "title", "comment", "is_visible"]
+        labels = {
+            "rating": "Số sao",
+            "title": "Tiêu đề",
+            "comment": "Nội dung đánh giá",
+            "is_visible": "Hiển thị đánh giá trên website",
+        }
+        widgets = {
+            "rating": forms.Select(choices=[(i, f"{i} sao") for i in range(5, 0, -1)]),
+            "title": forms.TextInput(attrs={"placeholder": "Tiêu đề đánh giá"}),
+            "comment": forms.Textarea(attrs={"placeholder": "Nội dung khách hàng đánh giá", "rows": 5}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields.values():
+            css = field.widget.attrs.get("class", "")
+            if isinstance(field.widget, forms.CheckboxInput):
+                field.widget.attrs["class"] = f"{css}".strip()
+            else:
+                field.widget.attrs["class"] = f"input {css}".strip()
+
+    def clean_rating(self):
+        rating = int(self.cleaned_data.get("rating") or 0)
+        if rating < 1 or rating > 5:
+            raise ValidationError("Số sao phải từ 1 đến 5.")
+        return rating
+
+    def clean_new_images(self):
+        images = self.cleaned_data.get("new_images") or []
+        if len(images) > MAX_REVIEW_IMAGES:
+            raise ValidationError(f"Chỉ thêm tối đa {MAX_REVIEW_IMAGES} ảnh mỗi lần.")
+        for image in images:
+            ten_file = getattr(image, "name", "")
+            ext = ten_file.rsplit(".", 1)[-1].lower() if "." in ten_file else ""
+            if ext not in ALLOWED_IMAGE_EXTENSIONS:
+                raise ValidationError("Ảnh đánh giá chỉ cho phép JPG, JPEG, PNG, WEBP hoặc GIF.")
+            if getattr(image, "size", 0) > MAX_UPLOAD_SIZE:
+                raise ValidationError("Mỗi ảnh đánh giá phải nhỏ hơn 2MB.")
+            content_type = getattr(image, "content_type", "")
+            if content_type and not content_type.startswith("image/"):
+                raise ValidationError("Vui lòng tải tệp ảnh hợp lệ.")
+        return images
+
+    def clean(self):
+        cleaned_data = super().clean()
+        title = (cleaned_data.get("title") or "").strip()
+        comment = (cleaned_data.get("comment") or "").strip()
+        if not title and not comment:
+            self.add_error("comment", ValidationError("Đánh giá cần có tiêu đề hoặc nội dung."))
+        cleaned_data["title"] = title
+        cleaned_data["comment"] = comment
+        return cleaned_data
+
 
 
 class ForgotPasswordOTPForm(BaseStyledForm):

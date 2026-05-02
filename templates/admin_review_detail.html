@@ -1,0 +1,90 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - Chi tiết đánh giá{% endblock %}
+{% block admin_content %}
+  <div class="card admin-card">
+    <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+      <div>
+        <h2 style="margin:0;">Đánh giá #{{ review.id }}</h2>
+        <div class="muted" style="margin-top:6px;">{{ review.created_at|date:"H:i - d/m/Y" }} • cập nhật {{ review.updated_at|date:"H:i - d/m/Y" }}</div>
+      </div>
+      <div class="admin-actions">
+        <a class="btn" href="{% url 'admin_review_list' %}">← Danh sách</a>
+        <a class="btn" href="{% url 'admin_review_edit' review.id %}">Sửa</a>
+        <form method="post" action="{% url 'admin_review_toggle' review.id %}">
+          {% csrf_token %}
+          <button class="btn" type="submit">{% if review.is_visible %}Ẩn đánh giá{% else %}Hiện đánh giá{% endif %}</button>
+        </form>
+        <a class="btn danger" href="{% url 'admin_review_delete' review.id %}">Xoá</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="split-2" style="margin-top:14px;align-items:start;">
+    <div class="card admin-card">
+      <h3 style="margin-top:0;">Nội dung đánh giá</h3>
+      <div style="font-size:26px;color:#b8860b;margin-bottom:8px;">{{ review.stars }} <span style="font-size:16px;color:var(--muted);">{{ review.rating }}/5</span></div>
+      <div style="font-weight:800;font-size:20px;margin-bottom:10px;">{{ review.title|default:"Không có tiêu đề" }}</div>
+      <div style="line-height:1.75;white-space:pre-line;">{{ review.comment|default:"Không có nội dung." }}</div>
+      <div style="margin-top:16px;">
+        {% if review.is_visible %}
+          <span class="status status-active">Đang hiển thị trên website</span>
+        {% else %}
+          <span class="status status-inactive">Đang ẩn khỏi website</span>
+        {% endif %}
+      </div>
+
+      <h3 style="margin:18px 0 10px;">Ảnh đánh giá</h3>
+      {% if review.images.all %}
+        <div class="admin-review-image-grid">
+          {% for image in review.images.all %}
+            <div class="admin-review-image-card">
+              <a href="{{ image.image.url }}" target="_blank"><img src="{{ image.image.url }}" alt="Ảnh đánh giá"></a>
+              <form method="post" action="{% url 'admin_review_image_delete' image.id %}">
+                {% csrf_token %}
+                <button class="btn danger" type="submit" onclick="return confirm('Xoá ảnh đánh giá này?')">Xoá ảnh</button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="muted">Đánh giá này chưa có ảnh.</div>
+      {% endif %}
+    </div>
+
+    <div class="card admin-card">
+      <h3 style="margin-top:0;">Thông tin liên quan</h3>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px;">
+        {% if review.san_pham.anh %}
+          <img src="{{ review.san_pham.anh.url }}" alt="" style="width:78px;height:78px;object-fit:cover;border-radius:14px;border:1px solid var(--line);">
+        {% endif %}
+        <div>
+          <div class="muted">Sản phẩm</div>
+          <div style="font-weight:800;line-height:1.45;">{{ review.san_pham.ten }}</div>
+          <div style="margin-top:8px;"><a class="btn" href="{% url 'admin_sanpham_detail' review.san_pham.id %}">Mở sản phẩm</a></div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="stat"><div class="stat-k">Khách hàng</div><div class="stat-v" style="font-size:20px;">{{ review.user.username }}</div><div class="muted">{{ review.user.email|default:"-" }}</div></div>
+        <div class="stat"><div class="stat-k">Ảnh kèm theo</div><div class="stat-v" style="font-size:20px;">{{ review.image_count }}</div><div class="muted">Review ID: #{{ review.id }}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card admin-card" style="margin-top:14px;">
+    <h3 style="margin-top:0;">Đánh giá khác của cùng sản phẩm</h3>
+    <div style="display:grid;gap:10px;">
+      {% for item in same_product_reviews %}
+        <div style="padding:12px;border:1px solid var(--line);border-radius:14px;background:#fff;">
+          <div style="display:flex;justify-content:space-between;gap:10px;">
+            <b>{{ item.user.username }}</b>
+            <span style="color:#b8860b;">{{ item.stars }}</span>
+          </div>
+          <div class="muted" style="margin-top:4px;">{{ item.title|default:item.comment|truncatechars:120 }}</div>
+          {% if item.images.all %}<div class="cell-sub" style="margin-top:4px;">Có {{ item.image_count }} ảnh</div>{% endif %}
+        </div>
+      {% empty %}
+        <div class="muted">Chưa có đánh giá khác cho sản phẩm này.</div>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}

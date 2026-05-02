@@ -350,7 +350,7 @@ class PhieuNhapKho(models.Model):
     STATUS_CHOICES = [
         ("draft", "Nháp"),
         ("received", "Đã nhập kho"),
-        ("cancelled", "Đã huỷ"),
+        ("cancelled", "Đã hủy"),
     ]
 
     code = models.CharField(max_length=20, unique=True)
@@ -455,6 +455,23 @@ class ProductReview(models.Model):
     def stars(self) -> str:
         rating = max(min(int(self.rating or 0), 5), 0)
         return "★" * rating + "☆" * (5 - rating)
+
+    @property
+    def image_count(self) -> int:
+        return self.images.count()
+
+
+class ProductReviewImage(models.Model):
+    review = models.ForeignKey(ProductReview, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(upload_to="reviews/")
+    caption = models.CharField(max_length=120, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["id"]
+
+    def __str__(self):
+        return self.caption or f"Ảnh đánh giá #{self.pk}"
 
 
 class CartItem(models.Model):

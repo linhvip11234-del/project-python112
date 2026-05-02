@@ -461,3 +461,37 @@ input[type="checkbox"]{width:18px;height:18px;}
     height:72vh;
   }
 }
+
+
+/* ===== Review images ===== */
+.review-image-grid{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:10px;
+}
+.review-image-thumb{
+  width:74px;
+  height:74px;
+  border-radius:12px;
+  overflow:hidden;
+  border:1px solid var(--line);
+  display:block;
+  background:#fff;
+}
+.review-image-thumb img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  display:block;
+}
+
+/* ===== Admin review images ===== */
+.admin-review-mini-images{display:flex;gap:4px;flex-wrap:wrap;}
+.admin-review-mini-images a{width:34px;height:34px;border-radius:8px;overflow:hidden;border:1px solid var(--line);display:block;background:#fff;}
+.admin-review-mini-images img{width:100%;height:100%;object-fit:cover;display:block;}
+.admin-review-image-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;}
+.admin-review-image-grid a{display:block;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:#fff;}
+.admin-review-image-grid img{width:100%;height:120px;object-fit:cover;display:block;}
+.admin-review-image-card{display:grid;gap:8px;}
+.admin-review-image-card .btn{width:100%;text-align:center;border-radius:12px;}

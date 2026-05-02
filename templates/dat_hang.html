@@ -12,6 +12,11 @@
 
     <form method="post">
       {% csrf_token %}
+      {% if checkout_source == 'cart' %}
+        {% for item_id in selected_cart_item_ids %}
+          <input type="hidden" name="selected_items" value="{{ item_id }}">
+        {% endfor %}
+      {% endif %}
 
       <h3 style="margin:0 0 10px;">1) Thông tin nhận hàng</h3>
 
@@ -137,8 +142,8 @@
     {% endif %}
 
     <div style="margin-top:12px;color:#666;">
-      Luồng đơn hàng: <b>Pending → Confirmed → Approved/Rejected</b>.<br>
-      User có thể xác nhận hoặc huỷ; Admin có thể duyệt / từ chối.
+      Luồng đơn hàng: <b>Chờ xác nhận → Đã xác nhận → Đang giao → Hoàn thành / Đã hủy</b>.<br>
+      Admin cập nhật trạng thái; User theo dõi thông báo trên chuông.
     </div>
     <div style="margin-top:12px;padding:12px;border:1px dashed #d8c394;border-radius:12px;background:#fffaf0;">
       <div style="font-weight:700;">Ví điện tử hiện có</div>

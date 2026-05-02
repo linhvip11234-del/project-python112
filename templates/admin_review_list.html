@@ -1,0 +1,131 @@
+{% extends "admin_base.html" %}
+{% block title %}Admin - Đánh giá{% endblock %}
+{% block admin_content %}
+  <div class="card admin-card">
+    <div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div>
+        <h2 style="margin:0;">Quản lý đánh giá</h2>
+        <div class="muted" style="margin-top:6px;">Xem, lọc, sửa, ẩn/hiện, xoá đánh giá và quản lý ảnh khách hàng gửi kèm.</div>
+      </div>
+      <div class="admin-actions">
+        <span class="status status-active">Hiện: {{ visible_reviews }}</span>
+        <span class="status status-inactive">Ẩn: {{ hidden_reviews }}</span>
+      </div>
+    </div>
+
+    <div class="grid-4" style="margin-top:14px;">
+      <div class="stat"><div class="stat-k">Tổng đánh giá</div><div class="stat-v">{{ total_reviews }}</div></div>
+      <div class="stat"><div class="stat-k">Đang hiển thị</div><div class="stat-v">{{ visible_reviews }}</div></div>
+      <div class="stat"><div class="stat-k">Có ảnh</div><div class="stat-v">{{ image_reviews }}</div></div>
+      <div class="stat"><div class="stat-k">Điểm trung bình</div><div class="stat-v">{{ avg_rating|floatformat:1 }}</div><div class="muted">/ 5 sao</div></div>
+    </div>
+
+    <form method="get" class="admin-filter" style="margin-top:14px;">
+      <input class="input" name="q" value="{{ q }}" placeholder="Tìm sản phẩm, user, tiêu đề, nội dung..." />
+      <select class="input" name="rating">
+        <option value="">-- Tất cả số sao --</option>
+        {% for value in "54321" %}
+          <option value="{{ value }}" {% if rating == value %}selected{% endif %}>{{ value }} sao</option>
+        {% endfor %}
+      </select>
+      <select class="input" name="visible">
+        <option value="">-- Tất cả trạng thái --</option>
+        <option value="1" {% if visible == "1" %}selected{% endif %}>Đang hiển thị</option>
+        <option value="0" {% if visible == "0" %}selected{% endif %}>Đang ẩn</option>
+      </select>
+      <select class="input" name="has_image">
+        <option value="">-- Tất cả ảnh --</option>
+        <option value="1" {% if has_image == "1" %}selected{% endif %}>Có ảnh</option>
+        <option value="0" {% if has_image == "0" %}selected{% endif %}>Không có ảnh</option>
+      </select>
+      <select class="input" name="sort">
+        {% for value, label in sort_choices %}
+          <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn" type="submit">Lọc</button>
+      <a class="btn" href="{% url 'admin_review_list' %}">Reset</a>
+    </form>
+  </div>
+
+  <div class="card" style="padding:0;margin-top:14px;overflow:hidden;">
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th style="width:22%;">Sản phẩm</th>
+          <th style="width:14%;">Khách hàng</th>
+          <th style="width:10%;">Số sao</th>
+          <th style="width:26%;">Nội dung</th>
+          <th style="width:12%;">Ảnh</th>
+          <th style="width:8%;">Trạng thái</th>
+          <th style="width:8%;">Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for review in ds %}
+        <tr>
+          <td>
+            <div style="display:flex;gap:10px;align-items:center;">
+              {% if review.san_pham.anh %}
+                <img src="{{ review.san_pham.anh.url }}" alt="" style="width:52px;height:52px;object-fit:cover;border-radius:12px;border:1px solid var(--line);">
+              {% else %}
+                <div style="width:52px;height:52px;border-radius:12px;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;" class="muted">—</div>
+              {% endif %}
+              <div>
+                <div class="cell-title">{{ review.san_pham.ten }}</div>
+                <div class="cell-sub">ID SP: {{ review.san_pham.id }} • Review #{{ review.id }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="cell-title">{{ review.user.username }}</div>
+            <div class="cell-sub">{{ review.user.email|default:"-" }}</div>
+          </td>
+          <td>
+            <div style="font-size:18px;color:#b8860b;white-space:nowrap;">{{ review.stars }}</div>
+            <div class="cell-sub">{{ review.rating }}/5</div>
+          </td>
+          <td>
+            <div class="cell-title">{{ review.title|default:"Không có tiêu đề" }}</div>
+            <div class="cell-sub">{{ review.comment|default:"Không có nội dung"|truncatechars:140 }}</div>
+            <div class="cell-sub">{{ review.created_at|date:"H:i - d/m/Y" }}</div>
+          </td>
+          <td>
+            {% if review.images.all %}
+              <div class="admin-review-mini-images">
+                {% for image in review.images.all|slice:":3" %}
+                  <a href="{{ image.image.url }}" target="_blank"><img src="{{ image.image.url }}" alt="Ảnh đánh giá"></a>
+                {% endfor %}
+              </div>
+              <div class="cell-sub">{{ review.image_count }} ảnh</div>
+            {% else %}
+              <span class="muted">Không có</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if review.is_visible %}
+              <span class="status status-active">Hiển thị</span>
+            {% else %}
+              <span class="status status-inactive">Đang ẩn</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="admin-actions">
+              <a class="btn" href="{% url 'admin_review_detail' review.id %}">Xem</a>
+              <a class="btn" href="{% url 'admin_review_edit' review.id %}">Sửa</a>
+              <form method="post" action="{% url 'admin_review_toggle' review.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button class="btn" type="submit">{% if review.is_visible %}Ẩn{% else %}Hiện{% endif %}</button>
+              </form>
+              <a class="btn danger" href="{% url 'admin_review_delete' review.id %}">Xoá</a>
+            </div>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="7" style="padding:14px;color:#666;">Chưa có đánh giá nào phù hợp.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
