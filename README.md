@@ -37,7 +37,7 @@ Demo website bán Lumière bằng Django, đã bổ sung thêm các yêu cầu t
 ### 6) Upload file/ảnh có validate
 - Upload ảnh sản phẩm
 - Kiểm tra định dạng: `JPG/JPEG/PNG/WEBP/GIF`
-- Kiểm tra kích thước tối đa: **2MB**
+- Kiểm tra kích thước tối đa: **5MB**
 
 ### 7) Thông báo rõ ràng
 - Dùng **Django messages** để hiển thị thông báo thành công / lỗi / cảnh báo dạng alert/toast

@@ -14,7 +14,7 @@ from .services import calculate_order_total, can_transition
 
 
 ALLOWED_IMAGE_EXTENSIONS = {"jpg", "jpeg", "png", "webp", "gif"}
-MAX_UPLOAD_SIZE = 2 * 1024 * 1024  # 2MB
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5MB
 MAX_REVIEW_IMAGES = 5
 
 
@@ -184,7 +184,7 @@ class SanPhamForm(forms.ModelForm):
             if ext not in ALLOWED_IMAGE_EXTENSIONS:
                 raise ValidationError("Ảnh gallery chỉ cho phép JPG, JPEG, PNG, WEBP hoặc GIF.")
             if getattr(image, "size", 0) > MAX_UPLOAD_SIZE:
-                raise ValidationError("Mỗi ảnh gallery phải nhỏ hơn 2MB.")
+                raise ValidationError("Mỗi ảnh gallery phải nhỏ hơn 5MB.")
             content_type = getattr(image, "content_type", "")
             if content_type and not content_type.startswith("image/"):
                 raise ValidationError("Gallery chỉ nhận tệp ảnh hợp lệ.")
@@ -210,7 +210,7 @@ class SanPhamForm(forms.ModelForm):
             raise ValidationError("Chỉ cho phép ảnh JPG, JPEG, PNG, WEBP hoặc GIF.")
 
         if getattr(anh, "size", 0) > MAX_UPLOAD_SIZE:
-            raise ValidationError("Ảnh vượt quá 2MB. Vui lòng chọn ảnh nhỏ hơn.")
+            raise ValidationError("Ảnh vượt quá 5MB. Vui lòng chọn ảnh nhỏ hơn 5MB.")
 
         content_type = getattr(anh, "content_type", "")
         if content_type and not content_type.startswith("image/"):
@@ -495,7 +495,7 @@ class ProductReviewForm(BaseStyledForm):
             if ext not in ALLOWED_IMAGE_EXTENSIONS:
                 raise ValidationError("Ảnh đánh giá chỉ cho phép JPG, JPEG, PNG, WEBP hoặc GIF.")
             if getattr(image, "size", 0) > MAX_UPLOAD_SIZE:
-                raise ValidationError("Mỗi ảnh đánh giá phải nhỏ hơn 2MB.")
+                raise ValidationError("Mỗi ảnh đánh giá phải nhỏ hơn 5MB.")
             content_type = getattr(image, "content_type", "")
             if content_type and not content_type.startswith("image/"):
                 raise ValidationError("Vui lòng tải tệp ảnh hợp lệ.")
@@ -554,7 +554,7 @@ class AdminProductReviewForm(forms.ModelForm):
             if ext not in ALLOWED_IMAGE_EXTENSIONS:
                 raise ValidationError("Ảnh đánh giá chỉ cho phép JPG, JPEG, PNG, WEBP hoặc GIF.")
             if getattr(image, "size", 0) > MAX_UPLOAD_SIZE:
-                raise ValidationError("Mỗi ảnh đánh giá phải nhỏ hơn 2MB.")
+                raise ValidationError("Mỗi ảnh đánh giá phải nhỏ hơn 5MB.")
             content_type = getattr(image, "content_type", "")
             if content_type and not content_type.startswith("image/"):
                 raise ValidationError("Vui lòng tải tệp ảnh hợp lệ.")
