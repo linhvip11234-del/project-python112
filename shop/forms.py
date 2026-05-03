@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from django import forms
 from django.forms import formset_factory
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.utils import timezone
 
 from .models import DonHang, InventoryBatch, NhaCungCap, PhieuNhapKho, ProductReview, SECURITY_QUESTION_CHOICES, SanPham, SavedAddress, Voucher
 from .services import calculate_order_total, can_transition
@@ -153,10 +155,18 @@ class SanPhamForm(forms.ModelForm):
             self.add_error("gia_khuyen_mai", ValidationError("Giá khuyến mại phải nhỏ hơn giá gốc."))
         if gia is not None and flash_sale_price not in (None, "") and int(flash_sale_price) >= int(gia):
             self.add_error("flash_sale_price", ValidationError("Giá flash sale phải nhỏ hơn giá gốc."))
-        if flash_sale_price not in (None, "") and not flash_sale_start:
-            self.add_error("flash_sale_start", ValidationError("Vui lòng chọn thời gian bắt đầu flash sale."))
-        if flash_sale_price not in (None, "") and not flash_sale_end:
-            self.add_error("flash_sale_end", ValidationError("Vui lòng chọn thời gian kết thúc flash sale."))
+
+        # Dễ dùng hơn: nếu admin nhập giá flash sale nhưng quên chọn thời gian,
+        # hệ thống tự bật flash sale từ hiện tại đến 3 ngày sau.
+        if flash_sale_price not in (None, ""):
+            now = timezone.now()
+            if not flash_sale_start:
+                cleaned_data["flash_sale_start"] = now
+                flash_sale_start = now
+            if not flash_sale_end:
+                cleaned_data["flash_sale_end"] = now + timedelta(days=3)
+                flash_sale_end = cleaned_data["flash_sale_end"]
+
         if (flash_sale_start and not flash_sale_price) or (flash_sale_end and not flash_sale_price):
             self.add_error("flash_sale_price", ValidationError("Vui lòng nhập giá flash sale khi đã chọn thời gian."))
         if flash_sale_start and flash_sale_end and flash_sale_end <= flash_sale_start:
@@ -212,7 +222,7 @@ class DatHangForm(BaseStyledForm):
     """Form checkout cho người dùng đặt hàng."""
 
     saved_address_id = forms.ChoiceField(required=False, label="Địa chỉ đã lưu")
-    ho_ten = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"placeholder": "Ví dụ: Trần Bình Minh"}))
+    ho_ten = forms.CharField(max_length=100, widget=forms.TextInput(attrs={"placeholder": "Ví dụ: Nguyễn Văn A"}))
     sdt = forms.CharField(max_length=20, widget=forms.TextInput(attrs={"placeholder": "Ví dụ: 0987654321"}))
     dia_chi = forms.CharField(max_length=255, widget=forms.TextInput(attrs={"placeholder": "Số nhà, đường, phường/xã, quận/huyện, tỉnh"}))
     ghi_chu = forms.CharField(max_length=255, required=False, widget=forms.TextInput(attrs={"placeholder": "Ví dụ: giao giờ hành chính"}))

@@ -5,7 +5,7 @@
 {% if loi %}<div class="err">{{ loi }}</div>{% endif %}
 <form method="post" class="formbox">
   {% csrf_token %}
-  <p>Tên đăng nhập:<br><input class="input" name="username" placeholder="Ví dụ: minh123"></p>
+  <p>Tên đăng nhập:<br><input class="input" name="username" placeholder="Ví dụ: user_demo"></p>
   <p>Mật khẩu:<br><input class="input" name="password" type="password" placeholder="******"></p>
   <button class="btn primary" type="submit">Đăng nhập</button>
   <a class="btn" href="{% url 'dang_ky' %}">Chưa có tài khoản?</a>

@@ -750,6 +750,18 @@ class ShopFeatureTests(TestCase):
         payload = response.json()
         self.assertTrue(any(item["ten"] == self.sp_active.ten for item in payload))
 
+        DonHang.objects.create(
+            nguoi_dat=self.user,
+            san_pham=self.sp_active,
+            ho_ten="Nguyen Van A",
+            sdt="0987654321",
+            dia_chi="Thai Nguyen",
+            ghi_chu="",
+            phuong_thuc_tt="COD",
+            so_luong=1,
+            tong_tien=100000,
+            trang_thai="Confirmed",
+        )
         self.client.login(username="user1", password="123456")
         response = self.client.post(
             reverse("api_product_review_create", args=[self.sp_active.id]),

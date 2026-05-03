@@ -56,40 +56,45 @@ class SanPham(models.Model):
         return self.gia_khuyen_mai is not None and int(self.gia_khuyen_mai or 0) > 0 and int(self.gia_khuyen_mai) < int(self.gia or 0)
 
     @property
-    def dang_flash_sale(self) -> bool:
-        now = timezone.now()
+    def co_flash_sale_cai_dat(self) -> bool:
+        """Có cấu hình giá flash sale hợp lệ.
+
+        Cho phép bỏ trống thời gian để coi flash sale là đang bật liên tục.
+        Nếu có thời gian bắt đầu/kết thúc thì hệ thống sẽ kiểm tra theo khung giờ đó.
+        """
         return (
             self.flash_sale_price is not None
             and int(self.flash_sale_price or 0) > 0
             and int(self.flash_sale_price) < int(self.gia or 0)
-            and self.flash_sale_start is not None
-            and self.flash_sale_end is not None
-            and self.flash_sale_start <= now <= self.flash_sale_end
         )
 
     @property
-    def co_flash_sale_cai_dat(self) -> bool:
-        return (
-            self.flash_sale_price is not None
-            and int(self.flash_sale_price or 0) > 0
-            and int(self.flash_sale_price) < int(self.gia or 0)
-            and self.flash_sale_start is not None
-            and self.flash_sale_end is not None
-        )
+    def dang_flash_sale(self) -> bool:
+        if not self.co_flash_sale_cai_dat:
+            return False
+        now = timezone.now()
+        if self.flash_sale_start and now < self.flash_sale_start:
+            return False
+        if self.flash_sale_end and now > self.flash_sale_end:
+            return False
+        return True
 
     @property
     def sap_dien_ra_flash_sale(self) -> bool:
-        return self.co_flash_sale_cai_dat and timezone.now() < self.flash_sale_start
+        return self.co_flash_sale_cai_dat and self.flash_sale_start is not None and timezone.now() < self.flash_sale_start
 
     @property
     def da_ket_thuc_flash_sale(self) -> bool:
-        return self.co_flash_sale_cai_dat and timezone.now() > self.flash_sale_end
+        return self.co_flash_sale_cai_dat and self.flash_sale_end is not None and timezone.now() > self.flash_sale_end
 
     @property
     def gia_hien_tai(self) -> int:
+        # Thứ tự ưu tiên giá: Flash Sale đang hiệu lực -> Giá khuyến mại -> Giá gốc.
         if self.dang_flash_sale:
             return int(self.flash_sale_price)
-        return int(self.gia_khuyen_mai) if self.dang_giam_gia else int(self.gia or 0)
+        if self.dang_giam_gia:
+            return int(self.gia_khuyen_mai)
+        return int(self.gia or 0)
 
     @property
     def so_tien_giam(self) -> int:
@@ -98,7 +103,7 @@ class SanPham(models.Model):
     @property
     def phan_tram_giam(self) -> int:
         gia = int(self.gia or 0)
-        if gia <= 0 or not self.dang_giam_gia:
+        if gia <= 0 or self.so_tien_giam <= 0:
             return 0
         return max((self.so_tien_giam * 100) // gia, 0)
 
@@ -257,10 +262,14 @@ class DonHang(models.Model):
 
     def save(self, *args, **kwargs):
         if self.san_pham_id:
-            self.tong_tien_goc = self.tinh_tong_tien()
+            # Chỉ tự tính tổng khi chưa truyền tổng tiền.
+            # Khi checkout, service đã tính theo giá hiện tại tại thời điểm đặt hàng
+            # để giá flash sale/khuyến mại được lưu cố định vào đơn.
+            if not self.tong_tien_goc:
+                self.tong_tien_goc = self.tinh_tong_tien()
             self.discount_amount = max(int(self.discount_amount or 0), 0)
             self.discount_amount = min(self.discount_amount, self.tong_tien_goc)
-            self.tong_tien = max(self.tong_tien_goc - self.discount_amount, 0)
+            self.tong_tien = max(int(self.tong_tien_goc or 0) - self.discount_amount, 0)
         super().save(*args, **kwargs)
 
 

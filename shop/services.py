@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import uuid
+import unicodedata
+import re
 from datetime import timedelta
 from typing import Iterable
 
@@ -52,17 +54,19 @@ INVENTORY_SORTS = {
 }
 
 ORDER_TRANSITIONS = {
+    # Khách hàng được xác nhận đơn của mình hoặc hủy khi đơn còn ở giai đoạn đầu.
     "user": {
-        "Pending": {"Cancelled"},
+        "Pending": {"Confirmed", "Cancelled"},
         "Confirmed": {"Cancelled"},
         "Shipping": set(),
         "Completed": set(),
         "Rejected": set(),
         "Cancelled": set(),
     },
+    # Admin có thể xử lý nhanh đơn hàng theo luồng thực tế trong trang quản trị.
     "admin": {
-        "Pending": {"Confirmed", "Rejected", "Cancelled"},
-        "Confirmed": {"Shipping", "Rejected", "Cancelled"},
+        "Pending": {"Confirmed", "Completed", "Rejected", "Cancelled"},
+        "Confirmed": {"Shipping", "Completed", "Rejected", "Cancelled"},
         "Shipping": {"Completed", "Cancelled"},
         "Completed": set(),
         "Rejected": set(),
@@ -79,112 +83,6 @@ TOPUP_STATUS_LABELS = {
 }
 
 
-CATALOG_MEDIA_PRODUCTS = [
-    {'ten': 'Bộ trang sức Aurora Vàng trắng 18K mã 001', 'gia': 9290000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/bo_60125_61116.png', 'search_tags': 'bộ trang sức bo trang suc lumiere trang sức quà tặng', 'mo_ta': 'Bộ trang sức phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 6, 'trang_thai': 'active'},
-    {'ten': 'Bộ trang sức Élise Vàng 14K mã 002', 'gia': 10080000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/bo_60998_60390.png', 'search_tags': 'bộ trang sức bo trang suc lumiere trang sức quà tặng', 'mo_ta': 'Bộ trang sức phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 7, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Celeste Vàng trắng mã 003', 'gia': 3630000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/bong_tai_hoa_vang_trang_10k.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 8, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Mira Kim cương mã 004', 'gia': 4420000, 'gia_khuyen_mai': 3980000, 'flash_sale_price': None, 'anh': 'sanpham/bong_tai_kim_cuong_vang_trang.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 9, 'trang_thai': 'active'},
-    {'ten': 'Bộ trang sức Grace Vàng trắng mã 005', 'gia': 12460000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bo-trang-suc-vang-trang-18k-60125-61116-5.jpg', 'search_tags': 'bộ trang sức bo trang suc lumiere trang sức quà tặng', 'mo_ta': 'Bộ trang sức phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 10, 'trang_thai': 'active'},
-    {'ten': 'Bộ trang sức Daisy Vàng trắng mã 006', 'gia': 13250000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bo-trang-suc-vang-trang-18k-60998-60390-4.jpg', 'search_tags': 'bộ trang sức bo trang suc lumiere trang sức quà tặng', 'mo_ta': 'Bộ trang sức phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 11, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Swan Kim cương mã 007', 'gia': 6790000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bong-tai-kim-cuong-vang-trang-14k-6.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 12, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Moonlight Đá ECZ mã 008', 'gia': 7590000, 'gia_khuyen_mai': 6830000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bong-tai-vang-trang-10k-inh-a-ecz-12.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 13, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Rosé Bạc cao cấp mã 009', 'gia': 8380000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bt001.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 14, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Pearl Đính đá ECZ mã 010', 'gia': 9170000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bt002.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 15, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Diamond Đính kim cương mã 011', 'gia': 9960000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bt101.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 16, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Lumière Vàng trắng 14K mã 012', 'gia': 10750000, 'gia_khuyen_mai': 9680000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bt102.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 17, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Aurora Vàng trắng 18K mã 013', 'gia': 11540000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bt103.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 18, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Élise Vàng 14K mã 014', 'gia': 12340000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bt104.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 19, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Celeste Bạc cao cấp mã 015', 'gia': 13130000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bt105.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 20, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Mira Đính đá ECZ mã 016', 'gia': 13920000, 'gia_khuyen_mai': 12530000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bt106.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 21, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Grace Đính kim cương mã 017', 'gia': 14710000, 'gia_khuyen_mai': None, 'flash_sale_price': 12060000, 'anh': 'sanpham/catalog/bt107.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 22, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Daisy Vàng trắng 14K mã 018', 'gia': 15500000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bt108.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 23, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Swan Vàng trắng 18K mã 019', 'gia': 16300000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bt109.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 24, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Moonlight Vàng 14K mã 020', 'gia': 17090000, 'gia_khuyen_mai': 15380000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bt110.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 25, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Rosé Bạc cao cấp mã 021', 'gia': 17880000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bt111.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 26, 'trang_thai': 'active'},
-    {'ten': 'Bông tai Pearl Đính đá ECZ mã 022', 'gia': 1420000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/bt112.jpg', 'search_tags': 'bông tai bong tai lumiere trang sức quà tặng', 'mo_ta': 'Bông tai phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 27, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Diamond Đính kim cương mã 023', 'gia': 21010000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/dc101.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 28, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Lumière Vàng trắng 14K mã 024', 'gia': 21810000, 'gia_khuyen_mai': 19630000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/dc102.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 29, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Aurora Vàng trắng 18K mã 025', 'gia': 22600000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/dc103.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 30, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Élise Vàng 14K mã 026', 'gia': 23390000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/dc104.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 5, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Celeste Bạc cao cấp mã 027', 'gia': 24180000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/dc105.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 6, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Mira Đính đá ECZ mã 028', 'gia': 24970000, 'gia_khuyen_mai': 22470000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/dc106.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 7, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Grace Đính kim cương mã 029', 'gia': 25770000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/dc107.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 8, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Daisy Vàng trắng 14K mã 030', 'gia': 26560000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/dc108.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 9, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Swan Vàng trắng 18K mã 031', 'gia': 27350000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/dc109.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 10, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Moonlight Vàng 14K mã 032', 'gia': 2940000, 'gia_khuyen_mai': 2650000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/dc110.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 11, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Rosé Bạc cao cấp mã 033', 'gia': 3730000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/dc111.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 12, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Pearl Đính đá ECZ mã 034', 'gia': 4530000, 'gia_khuyen_mai': None, 'flash_sale_price': 3710000, 'anh': 'sanpham/catalog/dc112.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 13, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Diamond Vàng mã 035', 'gia': 6720000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lac-tay-vang-14k-13.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 14, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Lumière Vàng mã 036', 'gia': 7510000, 'gia_khuyen_mai': 6760000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lac-tay-vang-24k-2.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 15, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Aurora Vàng trắng mã 037', 'gia': 8300000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lac-tay-vang-trang-y-18k-8.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 16, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Élise Vàng 14K mã 038', 'gia': 9090000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lt001.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 17, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Celeste Bạc cao cấp mã 039', 'gia': 9880000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lt002.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 18, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Mira Đính đá ECZ mã 040', 'gia': 10680000, 'gia_khuyen_mai': 9610000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lt101.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 19, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Grace Đính kim cương mã 041', 'gia': 11470000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lt102.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 20, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Daisy Vàng trắng 14K mã 042', 'gia': 12260000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lt103.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 21, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Swan Vàng trắng 18K mã 043', 'gia': 13050000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lt104.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 22, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Moonlight Vàng 14K mã 044', 'gia': 13840000, 'gia_khuyen_mai': 12460000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lt105.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 23, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Rosé Bạc cao cấp mã 045', 'gia': 14640000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lt106.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 24, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Pearl Đính đá ECZ mã 046', 'gia': 15430000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lt107.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 25, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Diamond Đính kim cương mã 047', 'gia': 16220000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lt108.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 26, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Lumière Vàng trắng 14K mã 048', 'gia': 17010000, 'gia_khuyen_mai': 15310000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lt109.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 27, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Aurora Vàng trắng 18K mã 049', 'gia': 17800000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lt110.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 28, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Élise Vàng 14K mã 050', 'gia': 18600000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/lt111.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 29, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Celeste Bạc cao cấp mã 051', 'gia': 19390000, 'gia_khuyen_mai': None, 'flash_sale_price': 15900000, 'anh': 'sanpham/catalog/lt112.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 30, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Mira Ngọc trai mã 052', 'gia': 18780000, 'gia_khuyen_mai': 16900000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/mat-day-chuyen-vang-18k-inh-ngoc-trai-southsea-7.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 5, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Grace Đá ECZ mã 053', 'gia': 19570000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/mat-day-chuyen-vang-trang-10k-inh-a-ecz-3.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 6, 'trang_thai': 'active'},
-    {'ten': 'Dây chuyền Daisy Sapphire mã 054', 'gia': 20360000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/mat-day-chuyen-vang-trang-14k-inh-a-sapphire-10.jpg', 'search_tags': 'dây chuyền day chuyen lumiere trang sức quà tặng', 'mo_ta': 'Dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 7, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Swan Vàng trắng 18K mã 055', 'gia': 5260000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/md001.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 8, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Moonlight Vàng 14K mã 056', 'gia': 6050000, 'gia_khuyen_mai': 5440000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/md002.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 9, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Rosé Bạc cao cấp mã 057', 'gia': 6840000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/md101.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 10, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Pearl Đính đá ECZ mã 058', 'gia': 7630000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/md102.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 11, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Diamond Đính kim cương mã 059', 'gia': 8420000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/md103.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 12, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Lumière Vàng trắng 14K mã 060', 'gia': 9220000, 'gia_khuyen_mai': 8300000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/md104.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 13, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Aurora Vàng trắng 18K mã 061', 'gia': 10010000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/md105.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 14, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Élise Vàng 14K mã 062', 'gia': 10800000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/md106.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 15, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Celeste Bạc cao cấp mã 063', 'gia': 11590000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/md107.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 16, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Mira Đính đá ECZ mã 064', 'gia': 12380000, 'gia_khuyen_mai': 11140000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/md108.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 17, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Grace Đính kim cương mã 065', 'gia': 13170000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/md109.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 18, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Daisy Vàng trắng 14K mã 066', 'gia': 13970000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/md110.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 19, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Swan Vàng trắng 18K mã 067', 'gia': 14760000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/md111.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 20, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Moonlight Vàng 14K mã 068', 'gia': 15550000, 'gia_khuyen_mai': 14000000, 'flash_sale_price': 12750000, 'anh': 'sanpham/catalog/md112.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 21, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Rosé Bạc cao cấp mã 069', 'gia': 24040000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n001.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 22, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Pearl Đính đá ECZ mã 070', 'gia': 24830000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n002.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 23, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Diamond Đính kim cương mã 071', 'gia': 25630000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n101.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 24, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Lumière Vàng trắng 14K mã 072', 'gia': 26420000, 'gia_khuyen_mai': 23780000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n102.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 25, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Aurora Vàng trắng 18K mã 073', 'gia': 27210000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n103.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 26, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Élise Vàng 14K mã 074', 'gia': 28000000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n104.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 27, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Celeste Bạc cao cấp mã 075', 'gia': 28790000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n105.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 28, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Mira Đính đá ECZ mã 076', 'gia': 29590000, 'gia_khuyen_mai': 26630000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n106.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 29, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Grace Đính kim cương mã 077', 'gia': 30380000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n107.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 30, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Daisy Vàng trắng 14K mã 078', 'gia': 31170000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n108.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 5, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Swan Vàng trắng 18K mã 079', 'gia': 31960000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n109.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 6, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Moonlight Vàng 14K mã 080', 'gia': 32750000, 'gia_khuyen_mai': 29480000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n110.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 7, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Rosé Bạc cao cấp mã 081', 'gia': 33550000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n111.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 8, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Pearl Đính đá ECZ mã 082', 'gia': 34340000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/n112.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 9, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Diamond Kim cương mã 083', 'gia': 2330000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/nhan-kim-cuong-vang-trang-14k-1.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 10, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Lumière Kim cương mã 084', 'gia': 3120000, 'gia_khuyen_mai': 2810000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/nhan-kim-cuong-vang-trang-14k-mau-2-9.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 11, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Aurora Đá ECZ mã 085', 'gia': 3910000, 'gia_khuyen_mai': None, 'flash_sale_price': 3210000, 'anh': 'sanpham/catalog/nhan-vang-trang-14k-inh-a-ecz-11.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 12, 'trang_thai': 'active'},
-    {'ten': 'Vòng tay Élise Vàng 14K mã 086', 'gia': 13100000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/v101.jpg', 'search_tags': 'vòng tay vong lumiere trang sức quà tặng', 'mo_ta': 'Vòng tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 13, 'trang_thai': 'active'},
-    {'ten': 'Vòng tay Celeste Bạc cao cấp mã 087', 'gia': 13900000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/v102.jpg', 'search_tags': 'vòng tay vong lumiere trang sức quà tặng', 'mo_ta': 'Vòng tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 14, 'trang_thai': 'active'},
-    {'ten': 'Vòng tay Mira Đính đá ECZ mã 088', 'gia': 14690000, 'gia_khuyen_mai': 13220000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/v103.jpg', 'search_tags': 'vòng tay vong lumiere trang sức quà tặng', 'mo_ta': 'Vòng tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 15, 'trang_thai': 'active'},
-    {'ten': 'Vòng tay Grace Đính kim cương mã 089', 'gia': 15480000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/v104.jpg', 'search_tags': 'vòng tay vong lumiere trang sức quà tặng', 'mo_ta': 'Vòng tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 16, 'trang_thai': 'active'},
-    {'ten': 'Vòng tay Daisy Vàng trắng 14K mã 090', 'gia': 2070000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/v105.jpg', 'search_tags': 'vòng tay vong lumiere trang sức quà tặng', 'mo_ta': 'Vòng tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 17, 'trang_thai': 'active'},
-    {'ten': 'Vòng tay Swan Vàng trắng 18K mã 091', 'gia': 2860000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/v106.jpg', 'search_tags': 'vòng tay vong lumiere trang sức quà tặng', 'mo_ta': 'Vòng tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 18, 'trang_thai': 'active'},
-    {'ten': 'Vòng tay Moonlight Vàng 14K mã 092', 'gia': 3660000, 'gia_khuyen_mai': 3290000, 'flash_sale_price': None, 'anh': 'sanpham/catalog/v107.jpg', 'search_tags': 'vòng tay vong lumiere trang sức quà tặng', 'mo_ta': 'Vòng tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 19, 'trang_thai': 'active'},
-    {'ten': 'Vòng tay Rosé Bạc cao cấp mã 093', 'gia': 4450000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/catalog/v108.jpg', 'search_tags': 'vòng tay vong lumiere trang sức quà tặng', 'mo_ta': 'Vòng tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 20, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Pearl Đính đá ECZ mã 094', 'gia': 6440000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/lac_tay_9999.png', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 21, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Diamond Vàng mã 095', 'gia': 7230000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/lac_tay_vang_14k.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 22, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Lumière Vàng mã 096', 'gia': 8020000, 'gia_khuyen_mai': 7220000, 'flash_sale_price': None, 'anh': 'sanpham/lac_tay_vang_14k_pnj.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 23, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Aurora Vàng trắng mã 097', 'gia': 8820000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/lac_tay_vang_trang_18k.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 24, 'trang_thai': 'active'},
-    {'ten': 'Lắc tay Élise Vàng trắng mã 098', 'gia': 9610000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/lac_tay_vang_trang_18k_pnj.jpg', 'search_tags': 'lắc tay lac tay lumiere trang sức quà tặng', 'mo_ta': 'Lắc tay phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 25, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Celeste Đá ECZ mã 099', 'gia': 20000000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/mat_day_ecz.png', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 26, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Mira Ngọc trai mã 100', 'gia': 20790000, 'gia_khuyen_mai': 18710000, 'flash_sale_price': None, 'anh': 'sanpham/mat_day_ngoc_trai_vang_18k.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 27, 'trang_thai': 'active'},
-    {'ten': 'Mặt dây chuyền Grace Sapphire mã 101', 'gia': 21580000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/mat_day_sapphire_vang_trang.jpg', 'search_tags': 'mặt dây chuyền mat day lumiere trang sức quà tặng', 'mo_ta': 'Mặt dây chuyền phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 28, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Daisy Đá ECZ mã 102', 'gia': 17380000, 'gia_khuyen_mai': None, 'flash_sale_price': 14250000, 'anh': 'sanpham/nhan_da_ecz_vang_trang.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 29, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Swan Kim cương mã 103', 'gia': 18170000, 'gia_khuyen_mai': None, 'flash_sale_price': None, 'anh': 'sanpham/nhan_kim_cuong_vang_trang_14k.jpg', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 30, 'trang_thai': 'active'},
-    {'ten': 'Nhẫn Moonlight Vàng 14K mã 104', 'gia': 18960000, 'gia_khuyen_mai': 17060000, 'flash_sale_price': None, 'anh': 'sanpham/nhan_kimcuong.png', 'search_tags': 'nhẫn nhan lumiere trang sức quà tặng', 'mo_ta': 'Nhẫn phong cách Lumière, thiết kế thanh lịch như gió xuân, phù hợp đi làm, đi chơi hoặc làm quà tặng.', 'ton_kho': 5, 'trang_thai': 'active'},
-]
 
 
 
@@ -198,10 +96,6 @@ def _safe_seed_product_by_image(item: dict, *, now=None) -> SanPham:
     now = now or timezone.now()
     flash_sale_start = item.get("flash_sale_start")
     flash_sale_end = item.get("flash_sale_end")
-
-    if item.get("flash_sale_price") and not flash_sale_start and not flash_sale_end:
-        flash_sale_start = now - timedelta(hours=2)
-        flash_sale_end = now + timedelta(days=3)
 
     defaults = {
         "ten": item["ten"],
@@ -220,9 +114,23 @@ def _safe_seed_product_by_image(item: dict, *, now=None) -> SanPham:
     qs = SanPham.objects.filter(anh=item["anh"]).order_by("id")
     obj = qs.first()
     if obj:
-        for field, value in defaults.items():
-            setattr(obj, field, value)
-        obj.save()
+        # Không ghi đè sản phẩm đã tồn tại.
+        # Trước đây seed chạy ở trang chủ/admin và cập nhật lại giá gốc, giá khuyến mại,
+        # flash sale... khiến admin vừa sửa xong bị mất hiệu lực.
+        # Chỉ bổ sung các trường còn trống để vẫn có dữ liệu mẫu đẹp.
+        changed_fields = []
+        for field in ["search_tags", "mo_ta"]:
+            if not getattr(obj, field) and defaults.get(field):
+                setattr(obj, field, defaults[field])
+                changed_fields.append(field)
+        if obj.ton_kho is None:
+            obj.ton_kho = defaults.get("ton_kho", 10)
+            changed_fields.append("ton_kho")
+        if not obj.trang_thai:
+            obj.trang_thai = defaults.get("trang_thai", "active")
+            changed_fields.append("trang_thai")
+        if changed_fields:
+            obj.save(update_fields=changed_fields)
         # Không xóa cứng sản phẩm trùng vì có thể đang được đơn hàng tham chiếu.
         # Chỉ ẩn khỏi catalog để tránh hiện lặp và tránh lỗi lần sau.
         qs.exclude(pk=obj.pk).update(trang_thai="inactive")
@@ -236,83 +144,187 @@ def seed_sample_products() -> None:
     now = timezone.now()
     ds = [
         {
-            "ten": "Bông tai Kim cương Vàng trắng 58,5% (14K) PNJ DD00W060198",
-            "gia": 46_200_000,
-            "gia_khuyen_mai": 41_580_000,
-            "flash_sale_price": 39_900_000,
-            "flash_sale_start": now - timedelta(hours=2),
-            "flash_sale_end": now + timedelta(hours=10),
-            "anh": "sanpham/bong_tai_kim_cuong_vang_trang.jpg",
-            "mo_ta": "Bông tai dáng hoop nhỏ gọn, đính dãy đá sáng đều, phù hợp đeo hằng ngày hoặc phối cùng trang phục dự tiệc.",
-            "ton_kho": 12,
+            'ten': 'Bông tai Kim cương Vàng trắng 58,5% (14K) DD00W060198',
+            'gia': 46200000,
+            'gia_khuyen_mai': 41580000,
+            'flash_sale_price': 39900000,
+            'anh': 'sanpham/bong_tai_kim_cuong_vang_trang.jpg',
+            'search_tags': 'bong tai, kim cuong, vang trang, 14k, trang suc nu',
+            'mo_ta': 'Bông tai dáng hoop nhỏ gọn, đính dãy đá sáng đều, phù hợp đeo hằng ngày hoặc phối cùng trang phục dự tiệc.',
+            'ton_kho': 12,
         },
         {
-            "ten": "Mặt dây chuyền Vàng 75% (18K) đính Ngọc trai Southsea PNJ PSDDC060001",
-            "gia": 24_610_000,
-            "anh": "sanpham/mat_day_ngoc_trai_vang_18k.jpg",
-            "mo_ta": "Mặt dây chuyền ngọc trai tông vàng sang trọng, thiết kế mềm mại tạo điểm nhấn nổi bật cho vùng cổ.",
-            "ton_kho": 8,
+            'ten': 'Mặt dây chuyền Vàng 75% (18K) đính Ngọc trai Southsea PSDDC060001',
+            'gia': 24610000,
+            'gia_khuyen_mai': None,
+            'flash_sale_price': None,
+            'anh': 'sanpham/mat_day_ngoc_trai_vang_18k.jpg',
+            'search_tags': 'mat day, day chuyen, ngoc trai, vang 18k, southsea',
+            'mo_ta': 'Mặt dây chuyền ngọc trai tông vàng sang trọng, thiết kế mềm mại tạo điểm nhấn nổi bật cho vùng cổ.',
+            'ton_kho': 8,
         },
         {
-            "ten": "Lắc tay Vàng trắng Ý 75% (18K) PNJ 0000W01534",
-            "gia": 15_892_000,
-            "gia_khuyen_mai": 14_100_000,
-            "anh": "sanpham/lac_tay_vang_trang_18k_pnj.jpg",
-            "mo_ta": "Lắc tay thanh mảnh với charm hoa tinh tế, phong cách nữ tính, dễ kết hợp cùng đồng hồ và nhẫn mảnh.",
-            "ton_kho": 15,
+            'ten': 'Lắc tay Vàng trắng Ý 75% (18K) 0000W01534',
+            'gia': 15892000,
+            'gia_khuyen_mai': 14100000,
+            'flash_sale_price': None,
+            'anh': 'sanpham/lac_tay_vang_trang_18k.jpg',
+            'search_tags': 'lac tay, vong tay, vang trang, 18k, charm hoa',
+            'mo_ta': 'Lắc tay thanh mảnh với charm hoa tinh tế, phong cách nữ tính, dễ kết hợp cùng đồng hồ và nhẫn mảnh.',
+            'ton_kho': 15,
         },
         {
-            "ten": "Nhẫn Kim cương Vàng trắng 58,5% (14K) PNJ DD00W060464",
-            "gia": 34_620_000,
-            "anh": "sanpham/nhan_kim_cuong_vang_trang_14k.jpg",
-            "mo_ta": "Nhẫn vàng trắng đính kim cương kiểu baguette hiện đại, tôn vẻ thanh lịch và sang trọng cho người đeo.",
-            "ton_kho": 10,
+            'ten': 'Nhẫn Kim cương Vàng trắng 58,5% (14K) DD00W060464',
+            'gia': 34620000,
+            'gia_khuyen_mai': None,
+            'flash_sale_price': None,
+            'anh': 'sanpham/nhan_kim_cuong_vang_trang_14k.jpg',
+            'search_tags': 'nhan, kim cuong, vang trang, 14k, nhan nu',
+            'mo_ta': 'Nhẫn vàng trắng đính kim cương kiểu baguette hiện đại, tôn vẻ thanh lịch và sang trọng cho người đeo.',
+            'ton_kho': 10,
         },
         {
-            "ten": "Mặt dây chuyền Vàng trắng 58,5% (14K) đính đá Sapphire PNJ SP00W000028",
-            "gia": 8_740_000,
-            "anh": "sanpham/mat_day_sapphire_vang_trang.jpg",
-            "mo_ta": "Thiết kế mặt dây tròn cổ điển kết hợp đá sapphire xanh đậm, phù hợp làm quà tặng ý nghĩa.",
-            "ton_kho": 9,
+            'ten': 'Mặt dây chuyền Vàng trắng 58,5% (14K) đính đá Sapphire SP00W000028',
+            'gia': 8740000,
+            'gia_khuyen_mai': None,
+            'flash_sale_price': None,
+            'anh': 'sanpham/mat_day_sapphire_vang_trang.jpg',
+            'search_tags': 'mat day, day chuyen, vang trang, sapphire, 14k',
+            'mo_ta': 'Thiết kế mặt dây tròn cổ điển kết hợp đá sapphire xanh đậm, phù hợp làm quà tặng ý nghĩa.',
+            'ton_kho': 9,
         },
         {
-            "ten": "Nhẫn Vàng trắng 58,5% (14K) đính đá ECZ PNJ XMXMW005643",
-            "gia": 10_476_000,
-            "gia_khuyen_mai": 9_250_000,
-            "flash_sale_price": 8_990_000,
-            "flash_sale_start": now - timedelta(hours=1),
-            "flash_sale_end": now + timedelta(hours=6),
-            "anh": "sanpham/nhan_da_ecz_vang_trang.jpg",
-            "mo_ta": "Nhẫn đính đá ECZ xếp tầng trẻ trung, độ sáng nổi bật, phù hợp đeo riêng hoặc chồng nhiều nhẫn.",
-            "ton_kho": 20,
+            'ten': 'Nhẫn Vàng trắng 58,5% (14K) đính đá ECZ XMXMW005643',
+            'gia': 10476000,
+            'gia_khuyen_mai': 9250000,
+            'flash_sale_price': 8990000,
+            'anh': 'sanpham/nhan_da_ecz_vang_trang.jpg',
+            'search_tags': 'nhan, vang trang, da ecz, 14k, nhan nu',
+            'mo_ta': 'Nhẫn đính đá ECZ xếp tầng trẻ trung, độ sáng nổi bật, phù hợp đeo riêng hoặc chồng nhiều nhẫn.',
+            'ton_kho': 20,
         },
         {
-            "ten": "Bông tai Vàng trắng 41,6% (10K) đính đá ECZ PNJ XMXMW060874",
-            "gia": 13_070_000,
-            "anh": "sanpham/bong_tai_hoa_vang_trang_10k.jpg",
-            "mo_ta": "Bông tai hoa đính đá lấp lánh, thiết kế cân đối và sang nhã, phù hợp phong cách thanh lịch.",
-            "ton_kho": 14,
+            'ten': 'Bông tai Vàng trắng 41,6% (10K) đính đá ECZ XMXMW060874',
+            'gia': 13070000,
+            'gia_khuyen_mai': None,
+            'flash_sale_price': None,
+            'anh': 'sanpham/bong_tai_hoa_vang_trang_10k.jpg',
+            'search_tags': 'bong tai, vang trang, da ecz, 10k, hoa',
+            'mo_ta': 'Bông tai hoa đính đá lấp lánh, thiết kế cân đối và sang nhã, phù hợp phong cách thanh lịch.',
+            'ton_kho': 14,
         },
         {
-            "ten": "Lắc tay Vàng 58,5% (14K) PNJ 0000Y060888",
-            "gia": 15_370_000,
-            "anh": "sanpham/lac_tay_vang_14k_pnj.jpg",
-            "mo_ta": "Lắc tay sắc vàng nổi bật với họa tiết xoắn mềm mại, tạo cảm giác đầy đặn nhưng vẫn nữ tính.",
-            "ton_kho": 11,
+            'ten': 'Lắc tay Vàng 58,5% (14K) 0000Y060888',
+            'gia': 15370000,
+            'gia_khuyen_mai': None,
+            'flash_sale_price': None,
+            'anh': 'sanpham/lac_tay_vang_14k.jpg',
+            'search_tags': 'lac tay, vong tay, vang, 14k, nu tinh',
+            'mo_ta': 'Lắc tay sắc vàng nổi bật với họa tiết xoắn mềm mại, tạo cảm giác đầy đặn nhưng vẫn nữ tính.',
+            'ton_kho': 11,
+        },
+        {
+            'ten': 'Bộ trang sức Vàng trắng đính đá dáng nơ thanh lịch',
+            'gia': 28900000,
+            'gia_khuyen_mai': 26500000,
+            'flash_sale_price': None,
+            'anh': 'sanpham/bo_trang_suc_vang_trang_dang_no.png',
+            'search_tags': 'bo trang suc, vang trang, bong tai, day chuyen, da, dang no',
+            'mo_ta': 'Bộ trang sức vàng trắng gồm dây chuyền và bông tai, điểm nhấn dáng nơ mềm mại, phù hợp phong cách thanh lịch.',
+            'ton_kho': 7,
+        },
+        {
+            'ten': 'Bông tai Kim cương Vàng trắng 58,5% (14K) trái tim',
+            'gia': 35800000,
+            'gia_khuyen_mai': 33200000,
+            'flash_sale_price': None,
+            'anh': 'sanpham/bong_tai_kim_cuong_vang_trang_14k_trai_tim.png',
+            'search_tags': 'bong tai, kim cuong, vang trang, 14k, trai tim',
+            'mo_ta': 'Bông tai vàng trắng hình trái tim đính kim cương, thiết kế nhỏ gọn nhưng nổi bật, phù hợp làm quà tặng.',
+            'ton_kho': 9,
+        },
+        {
+            'ten': 'Bộ trang sức Vàng trắng 14K đính đá xanh lá',
+            'gia': 42500000,
+            'gia_khuyen_mai': 39900000,
+            'flash_sale_price': None,
+            'anh': 'sanpham/bo_trang_suc_vang_trang_da_xanh_14k.png',
+            'search_tags': 'bo trang suc, vang trang, nhan, bong tai, lac tay, da xanh',
+            'mo_ta': 'Bộ trang sức vàng trắng tông xanh lá gồm nhẫn, bông tai và lắc tay, tạo vẻ sang trọng và hiện đại.',
+            'ton_kho': 5,
+        },
+        {
+            'ten': 'Bộ trang sức Vàng 18K đính đá xanh lá họa tiết lá',
+            'gia': 48600000,
+            'gia_khuyen_mai': 45900000,
+            'flash_sale_price': None,
+            'anh': 'sanpham/bo_trang_suc_vang_18k_da_xanh_la.png',
+            'search_tags': 'bo trang suc, vang, 18k, nhan, bong tai, day chuyen, da xanh, hoa tiet la',
+            'mo_ta': 'Bộ trang sức vàng 18K lấy cảm hứng từ họa tiết lá, kết hợp đá xanh dịu mắt và kiểu dáng mềm mại.',
+            'ton_kho': 4,
+        },
+        {
+            'ten': 'Bộ trang sức Vàng 14K đính đá Ruby may mắn',
+            'gia': 31900000,
+            'gia_khuyen_mai': 29500000,
+            'flash_sale_price': None,
+            'anh': 'sanpham/bo_trang_suc_vang_14k_da_ruby_may_man.png',
+            'search_tags': 'bo trang suc, vang, 14k, ruby, day chuyen, lac tay, bong tai, mat day',
+            'mo_ta': 'Bộ trang sức vàng 14K với điểm nhấn đá Ruby đỏ nổi bật, phù hợp phong cách trẻ trung và may mắn.',
+            'ton_kho': 6,
+        },
+        {
+            'ten': 'Bông tai Vàng trắng 58,5% (14K) đính đá ECZ Audax Rosa',
+            'gia': 12900000,
+            'gia_khuyen_mai': 11600000,
+            'flash_sale_price': None,
+            'anh': 'sanpham/bong_tai_vang_trang_14k_dinh_da_ecz_audax_rosa.png',
+            'search_tags': 'bong tai, vang trang, 14k, da ecz, audax rosa, hoa',
+            'mo_ta': 'Bông tai vàng trắng đính đá ECZ với thiết kế cách điệu tinh tế, dễ phối cùng nhiều phong cách thời trang.',
+            'ton_kho': 13,
+        },
+        {
+            'ten': 'Dây cổ Kim cương Vàng trắng 58,5% (14K) họa tiết lá ngọc',
+            'gia': 56800000,
+            'gia_khuyen_mai': 52900000,
+            'flash_sale_price': None,
+            'anh': 'sanpham/day_co_kim_cuong_vang_trang_14k_la_ngoc.png',
+            'search_tags': 'day co, day chuyen, kim cuong, vang trang, 14k, da xanh, hoa tiet la',
+            'mo_ta': 'Dây cổ vàng trắng đính kim cương với họa tiết lá mềm mại, tạo điểm nhấn cao cấp cho trang phục dự tiệc.',
+            'ton_kho': 3,
+        },
+        {
+            'ten': 'Bộ trang sức Vàng trắng 14K họa tiết lá xanh',
+            'gia': 63500000,
+            'gia_khuyen_mai': 59900000,
+            'flash_sale_price': None,
+            'anh': 'sanpham/bo_trang_suc_vang_trang_14k_la_xanh.png',
+            'search_tags': 'bo trang suc, vang trang, 14k, nhan, lac tay, day chuyen, da xanh, la xanh',
+            'mo_ta': 'Bộ trang sức vàng trắng 14K họa tiết lá xanh gồm dây chuyền, nhẫn và lắc tay, phù hợp phong cách sang trọng.',
+            'ton_kho': 4,
+        },
+        {
+            'ten': 'Nhẫn nam Vàng 18K đính đá Ruby Mancode',
+            'gia': 38900000,
+            'gia_khuyen_mai': 36500000,
+            'flash_sale_price': None,
+            'anh': 'sanpham/nhan_nam_vang_18k_dinh_da_ruby_mancode.png',
+            'search_tags': 'nhan, nhan nam, vang, 18k, ruby, mancode',
+            'mo_ta': 'Nhẫn nam vàng 18K đính đá Ruby đỏ nổi bật, thiết kế bản lớn mạnh mẽ và lịch lãm.',
+            'ton_kho': 8,
+        },
+        {
+            'ten': 'Vòng tay Vàng 10K charm hoa đáng yêu',
+            'gia': 6900000,
+            'gia_khuyen_mai': 6200000,
+            'flash_sale_price': None,
+            'anh': 'sanpham/vong_tay_vang_10k_charm_hoa_dang_yeu.png',
+            'search_tags': 'vong tay, lac tay, vang, 10k, charm hoa, de thuong',
+            'mo_ta': 'Vòng tay vàng 10K nhỏ gọn với charm hoa xinh xắn, phù hợp đeo hằng ngày hoặc làm quà tặng.',
+            'ton_kho': 16,
         },
     ]
     for item in ds:
-        _safe_seed_product_by_image(item, now=now)
-
-    # Tự tạo thêm sản phẩm từ thư mục media/sanpham/catalog và các ảnh đã gộp.
-    # Dùng ảnh làm khóa để tránh tạo trùng khi trang chủ gọi seed nhiều lần.
-    for idx, item in enumerate(CATALOG_MEDIA_PRODUCTS, start=1):
-        flash_sale_start = None
-        flash_sale_end = None
-        if item.get("flash_sale_price"):
-            flash_sale_start = now - timedelta(hours=2)
-            flash_sale_end = now + timedelta(days=3)
-        item = {**item, "flash_sale_start": flash_sale_start, "flash_sale_end": flash_sale_end}
         _safe_seed_product_by_image(item, now=now)
 
 
@@ -353,7 +365,9 @@ def get_user_role(user) -> str:
 
 
 def calculate_order_total(product: SanPham, quantity: int) -> int:
-    return int(product.gia_hien_tai) * int(quantity)
+    # Luôn lấy giá bán hiện tại theo thứ tự ưu tiên:
+    # flash sale đang hiệu lực -> giá khuyến mại -> giá gốc.
+    return max(int(product.gia_hien_tai or 0), 0) * max(int(quantity or 0), 0)
 
 
 def get_or_create_wallet(user: User) -> Wallet:
@@ -1110,13 +1124,81 @@ def build_order_transfer_qr(order: DonHang) -> str:
     return build_vietqr_payload(amount=order.tong_tien, description=(order.ma_thanh_toan or f"DH{order.id}")[:25])
 
 
+def normalize_vietnamese_text(value: str) -> str:
+    """Chuyển tiếng Việt có dấu về không dấu để hỗ trợ tìm kiếm sản phẩm."""
+    value = str(value or "").lower().strip()
+    value = value.replace("đ", "d").replace("Đ", "d")
+    value = unicodedata.normalize("NFD", value)
+    value = "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
+    value = " ".join(value.split())
+    return value
+
+
+def tokenize_vietnamese_text(value: str) -> list[str]:
+    """Tách chuỗi đã bỏ dấu thành các từ để tìm chính xác hơn."""
+    normalized = normalize_vietnamese_text(value)
+    return [token for token in re.split(r"[^a-z0-9]+", normalized) if token]
+
+
+def keyword_matches_product(product: SanPham, keyword: str) -> bool:
+    """Kiểm tra từ khóa không dấu theo tên sản phẩm/tag, tránh match lan man trong mô tả.
+
+    Ví dụ:
+    - "nhan" hoặc "nha" khớp với token "Nhẫn" trong tên sản phẩm.
+    - Không dùng mô tả để tránh "nhan" khớp nhầm với "điểm nhấn" hoặc "cá nhân".
+    """
+    keyword_tokens = tokenize_vietnamese_text(keyword)
+    if not keyword_tokens:
+        return True
+
+    searchable_tokens = tokenize_vietnamese_text(f"{product.ten} {product.search_tags}")
+
+    if len(keyword_tokens) == 1:
+        kw = keyword_tokens[0]
+        return any(token.startswith(kw) for token in searchable_tokens)
+
+    # Với cụm nhiều từ như "day chuyen", "lac tay", yêu cầu các token xuất hiện liên tiếp.
+    total = len(keyword_tokens)
+    for index in range(0, len(searchable_tokens) - total + 1):
+        window = searchable_tokens[index:index + total]
+        if all(token.startswith(kw) for token, kw in zip(window, keyword_tokens)):
+            return True
+
+    return False
+
+
+def filter_products_accent_insensitive(queryset, keyword: str):
+    """Tìm sản phẩm không phân biệt dấu tiếng Việt nhưng ưu tiên đúng tên sản phẩm.
+
+    Cách này sửa lỗi gõ "nhan" nhưng ra cả sản phẩm khác chỉ vì mô tả có chữ
+    "điểm nhấn". Hàm chỉ tìm trong tên sản phẩm và search_tags.
+    """
+    keyword = (keyword or "").strip()
+    if not keyword:
+        return queryset
+
+    matched_ids = set()
+
+    # Giữ tìm kiếm có dấu trực tiếp trong tên/tag để nhanh và đúng.
+    direct_ids = list(
+        queryset.filter(
+            models.Q(ten__icontains=keyword)
+            | models.Q(search_tags__icontains=keyword)
+        ).values_list("id", flat=True)
+    )
+    matched_ids.update(direct_ids)
+
+    # Bổ sung tìm không dấu theo token/prefix.
+    for sp in queryset.only("id", "ten", "search_tags"):
+        if keyword_matches_product(sp, keyword):
+            matched_ids.add(sp.id)
+
+    return queryset.filter(id__in=matched_ids)
+
+
 def apply_product_filters(queryset, *, q: str = "", status: str = "", sort: str = "newest"):
     if q:
-        queryset = queryset.filter(
-            models.Q(ten__icontains=q)
-            | models.Q(mo_ta__icontains=q)
-            | models.Q(search_tags__icontains=q)
-        )
+        queryset = filter_products_accent_insensitive(queryset, q)
     if status in {code for code, _ in SanPham.TRANG_THAI}:
         queryset = queryset.filter(trang_thai=status)
     return queryset.order_by(*PRODUCT_SORTS.get(sort, PRODUCT_SORTS["newest"]))

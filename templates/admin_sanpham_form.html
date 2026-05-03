@@ -12,7 +12,7 @@
       <div style="padding:14px;border:1px dashed var(--line);border-radius:14px;background:#fffaf7;">
         <div class="label" style="font-size:16px;margin-bottom:10px;">Flash Sale</div>
         <div style="display:grid;gap:12px;">
-          <div><div class="label">Giá flash sale (VND)</div>{{ form.flash_sale_price }}{{ form.flash_sale_price.errors }}</div>
+          <div><div class="label">Giá flash sale (VND)</div>{{ form.flash_sale_price }}{{ form.flash_sale_price.errors }}<div class="muted" style="margin-top:6px;">Nếu nhập giá flash sale mà bỏ trống thời gian, hệ thống tự bật từ hiện tại đến 3 ngày sau.</div></div>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
             <div><div class="label">Bắt đầu</div>{{ form.flash_sale_start }}{{ form.flash_sale_start.errors }}</div>
             <div><div class="label">Kết thúc</div>{{ form.flash_sale_end }}{{ form.flash_sale_end.errors }}</div>

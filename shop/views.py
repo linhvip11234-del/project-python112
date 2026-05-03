@@ -7,7 +7,7 @@ import random
 import qrcode
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -399,15 +399,19 @@ def home(request):
     ds = list(ds_qs)
     if sort == "rating_desc":
         ds.sort(key=lambda p: (float(p.average_rating or 0), int(p.review_count or 0), p.id), reverse=True)
+    elif sort == "price_asc":
+        ds.sort(key=lambda p: (int(p.gia_hien_tai or 0), p.id))
+    elif sort == "price_desc":
+        ds.sort(key=lambda p: (int(p.gia_hien_tai or 0), p.id), reverse=True)
     ds = _filter_products_for_catalog(ds, min_price=min_price, max_price=max_price, sale_only=sale_only, in_stock=in_stock, min_rating=min_rating)
 
     flash_sale_products = list(_annotated_catalog_queryset(SanPham.objects.filter(
+        models.Q(flash_sale_start__isnull=True) | models.Q(flash_sale_start__lte=now),
+        models.Q(flash_sale_end__isnull=True) | models.Q(flash_sale_end__gte=now),
         trang_thai="active",
         flash_sale_price__isnull=False,
         flash_sale_price__gt=0,
         flash_sale_price__lt=models.F("gia"),
-        flash_sale_start__lte=now,
-        flash_sale_end__gte=now,
     ).order_by("flash_sale_end", "-id")[:4]))
     discounted_products = list(_annotated_catalog_queryset(SanPham.objects.filter(
         trang_thai="active",
@@ -438,12 +442,12 @@ def flash_sale_products(request):
     seed_sample_vouchers()
     now = timezone.now()
     ds = SanPham.objects.filter(
+        models.Q(flash_sale_start__isnull=True) | models.Q(flash_sale_start__lte=now),
+        models.Q(flash_sale_end__isnull=True) | models.Q(flash_sale_end__gte=now),
         trang_thai="active",
         flash_sale_price__isnull=False,
         flash_sale_price__gt=0,
         flash_sale_price__lt=models.F("gia"),
-        flash_sale_start__lte=now,
-        flash_sale_end__gte=now,
     ).order_by("flash_sale_end", "-id")
     return render(request, "flash_sale_products.html", {
         "ds": ds,
@@ -852,7 +856,7 @@ def dat_hang(request, san_pham_id):
                 return redirect("order_payment_qr", don_id=don.id)
             if don.da_thanh_toan:
                 _queue_review_popup_orders(request, [don.id])
-                messages.success(request, f"Thanh toán thành công cho đơn #{don.id}. Bạn có thể đánh giá sản phẩm ngay.")
+                messages.success(request, f"Đặt hàng thành công. Thanh toán thành công cho đơn #{don.id}. Bạn có thể đánh giá sản phẩm ngay.")
             else:
                 messages.success(request, f"Đặt hàng thành công. Mã đơn của bạn là #{don.id}.")
             return redirect("ds_don")
@@ -893,24 +897,24 @@ def thanh_toan_gio_hang(request):
     if request.method == "GET" and not selected_item_ids:
         selected_item_ids = [item.id for item in all_cart_items]
 
+    # Tương thích với luồng cũ/test tự động: nếu POST trực tiếp vào checkout giỏ hàng
+    # mà không gửi selected_items thì mặc định thanh toán toàn bộ giỏ hàng.
     if request.method == "POST" and not selected_item_ids:
-        form = DatHangForm(request.POST or None, user=request.user)
-        form.add_error(None, "Bạn cần tích chọn ít nhất một sản phẩm để thanh toán.")
-        selected_cart_items = []
-    else:
-        selected_cart_items = [item for item in all_cart_items if item.id in selected_item_ids]
-        if not selected_cart_items:
-            messages.error(request, "Các sản phẩm đã chọn không còn trong giỏ hàng.")
-            return redirect("gio_hang")
+        selected_item_ids = [item.id for item in all_cart_items]
 
-        default_address = get_default_saved_address(request.user)
-        initial = {"ho_ten": request.user.get_full_name() or request.user.username, "so_luong": 1, "phuong_thuc_tt": "COD"}
-        voucher_from_cart = request.GET.get("voucher", "").strip().upper()
-        if voucher_from_cart:
-            initial["voucher_code"] = voucher_from_cart
-        if default_address:
-            initial.update({"saved_address_id": str(default_address.id), "ho_ten": default_address.ho_ten, "sdt": default_address.sdt, "dia_chi": default_address.dia_chi})
-        form = DatHangForm(request.POST or None, initial=initial if request.method == "GET" else None, user=request.user)
+    selected_cart_items = [item for item in all_cart_items if item.id in selected_item_ids]
+    if not selected_cart_items:
+        messages.error(request, "Các sản phẩm đã chọn không còn trong giỏ hàng.")
+        return redirect("gio_hang")
+
+    default_address = get_default_saved_address(request.user)
+    initial = {"ho_ten": request.user.get_full_name() or request.user.username, "so_luong": 1, "phuong_thuc_tt": "COD"}
+    voucher_from_cart = request.GET.get("voucher", "").strip().upper()
+    if voucher_from_cart:
+        initial["voucher_code"] = voucher_from_cart
+    if default_address:
+        initial.update({"saved_address_id": str(default_address.id), "ho_ten": default_address.ho_ten, "sdt": default_address.sdt, "dia_chi": default_address.dia_chi})
+    form = DatHangForm(request.POST or None, initial=initial if request.method == "GET" else None, user=request.user)
 
     checkout_items = [
         {
@@ -942,7 +946,7 @@ def thanh_toan_gio_hang(request):
                     _queue_review_popup_orders(request, paid_order_ids)
                     messages.success(request, f"Thanh toán thành công {len(paid_order_ids)} đơn hàng đã chọn. Bạn có thể đánh giá sản phẩm ngay.")
                 else:
-                    messages.success(request, f"Đã tạo thành công {len(orders)} đơn hàng từ các sản phẩm đã chọn.")
+                    messages.success(request, f"Đã tạo thành công {len(orders)} đơn hàng từ giỏ hàng.")
             return redirect("ds_don")
 
     context = _build_checkout_context(user=request.user, form=form, items=checkout_items, source="cart")

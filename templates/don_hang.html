@@ -86,9 +86,9 @@
 </div>
 
 {% if review_popup_order and review_popup_form %}
-  <div id="reviewPaymentModal" style="position:fixed;inset:0;background:rgba(18,18,18,.52);display:flex;align-items:center;justify-content:center;padding:18px;z-index:1000;">
-    <div style="width:min(560px,100%);max-height:90vh;overflow:auto;background:#fffdf9;border:1px solid var(--line);border-radius:24px;box-shadow:0 24px 60px rgba(0,0,0,.18);padding:20px;position:relative;">
-      <button type="button" onclick="document.getElementById('reviewPaymentModal').style.display='none'" style="position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:22px;line-height:1;">×</button>
+  <div id="reviewPaymentModal" style="position:fixed;inset:0;background:rgba(18,18,18,.58);display:flex;align-items:flex-start;justify-content:center;padding:24px 14px;z-index:2147483000;overflow:auto;">
+    <div style="width:min(680px,100%);max-height:calc(100vh - 48px);overflow:auto;background:#fffdf9;border:1px solid var(--line);border-radius:24px;box-shadow:0 28px 80px rgba(0,0,0,.28);padding:20px;position:relative;margin:auto 0;">
+      <button type="button" onclick="document.getElementById('reviewPaymentModal').style.display='none'" style="position:sticky;top:0;float:right;width:38px;height:38px;border-radius:999px;border:1px solid var(--line);background:#fff;cursor:pointer;font-size:22px;line-height:1;z-index:2;box-shadow:0 6px 18px rgba(0,0,0,.08);">×</button>
 
       <div class="status status-approved" style="display:inline-flex;margin-bottom:12px;">Thanh toán thành công</div>
       <h3 style="margin:0 0 8px;font-family:'Cormorant Garamond',serif;font-size:30px;">Đánh giá sản phẩm</h3>
@@ -129,7 +129,7 @@
         </div>
         <div>
           <div class="label">Ảnh đánh giá (tối đa 5 ảnh)</div>
-          {{ review_popup_form.images }}
+          <div style="border:1px solid var(--line);border-radius:14px;background:#fff;padding:10px;">{{ review_popup_form.images }}</div>
         </div>
         <div class="row" style="gap:10px;justify-content:flex-end;flex-wrap:wrap;">
           <button type="button" class="btn" onclick="document.getElementById('reviewPaymentModal').style.display='none'">Để sau</button>

@@ -180,7 +180,7 @@
           <div class="body">
             <div class="row" style="justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
               <span class="status" style="background:#ffefef;color:#c62828;border-color:#ffcaca;">FLASH SALE</span>
-              <span class="muted">Đến {{ sp.flash_sale_end|date:"H:i d/m/Y" }}</span>
+              <span class="muted">{% if sp.flash_sale_end %}Đến {{ sp.flash_sale_end|date:"H:i d/m/Y" }}{% else %}Đang mở{% endif %}</span>
             </div>
             <p class="name product-name">{{ sp.ten }}</p>
             <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
