@@ -2369,32 +2369,89 @@ def _chatbot_context_for_user(request, message: str) -> str:
     ])
 
 
-def _call_openai_chatbot(message: str, context: str) -> str:
-    """Gọi OpenAI-compatible Chat Completions nếu có OPENAI_API_KEY.
+def _openai_text_from_response(response) -> str:
+    """Lấy text trả về từ OpenAI SDK theo nhiều phiên bản SDK khác nhau."""
+    output_text = getattr(response, "output_text", None)
+    if output_text:
+        return str(output_text).strip()
 
-    Không bắt buộc cài thêm thư viện. Nếu không có key hoặc lỗi mạng,
-    hàm trả về chuỗi rỗng để dùng fallback nội bộ.
-    """
+    try:
+        # Chat Completions SDK object
+        return (response.choices[0].message.content or "").strip()
+    except Exception:
+        pass
+
+    try:
+        # Responses API dạng object/dict phức tạp
+        chunks = []
+        for item in getattr(response, "output", []) or []:
+            for content in getattr(item, "content", []) or []:
+                text = getattr(content, "text", None)
+                if text:
+                    chunks.append(str(text))
+        return "\n".join(chunks).strip()
+    except Exception:
+        return ""
+
+
+def _call_openai_with_sdk(api_key: str, model: str, system_prompt: str, context: str, message: str) -> str:
+    """Gọi OpenAI bằng SDK chính thức nếu máy đã cài package openai."""
+    import os
+
+    try:
+        from openai import OpenAI
+    except Exception:
+        return ""
+
+    timeout = float(os.environ.get("OPENAI_TIMEOUT", "20") or 20)
+    client = OpenAI(api_key=api_key, timeout=timeout)
+
+    # Ưu tiên Responses API theo SDK mới.
+    try:
+        response = client.responses.create(
+            model=model,
+            input=[
+                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": context},
+                {"role": "user", "content": message},
+            ],
+            temperature=0.45,
+            max_output_tokens=450,
+        )
+        text = _openai_text_from_response(response)
+        if text:
+            return text
+    except Exception:
+        pass
+
+    # Fallback cho SDK/Model dùng Chat Completions.
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "system", "content": context},
+                {"role": "user", "content": message},
+            ],
+            temperature=0.45,
+            max_tokens=450,
+        )
+        return _openai_text_from_response(response)
+    except Exception:
+        return ""
+
+
+def _call_openai_with_http(api_key: str, model: str, system_prompt: str, context: str, message: str) -> str:
+    """Gọi OpenAI bằng HTTP thuần để dự án vẫn chạy nếu chưa cài SDK."""
     import json
     import os
     import urllib.request
 
-    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
-    if not api_key:
-        return ""
-
-    api_url = os.environ.get("OPENAI_CHAT_COMPLETIONS_URL", "https://api.openai.com/v1/chat/completions").strip()
-    model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini").strip()
-
-    system_prompt = (
-        "Bạn là trợ lý AI bán hàng cho website Lumière Django. "
-        "Trả lời bằng tiếng Việt, xưng 'em' và gọi khách là 'Anh/Chị'. "
-        "Dựa trên THÔNG TIN WEBSITE được cung cấp, không bịa dữ liệu ngoài hệ thống. "
-        "Câu trả lời ngắn gọn, thân thiện, tối đa 6 câu hoặc dùng gạch đầu dòng ngắn. "
-        "Nếu khách hỏi mua sản phẩm, hãy gợi ý sản phẩm còn hàng và hướng dẫn bấm xem chi tiết/thêm giỏ. "
-        "Nếu câu hỏi cần thao tác tài khoản, nhắc khách đăng nhập. "
-        "Không yêu cầu thông tin nhạy cảm như mật khẩu hay mã OTP."
-    )
+    api_url = os.environ.get(
+        "OPENAI_CHAT_COMPLETIONS_URL",
+        "https://api.openai.com/v1/chat/completions",
+    ).strip()
+    timeout = float(os.environ.get("OPENAI_TIMEOUT", "20") or 20)
 
     payload = {
         "model": model,
@@ -2419,13 +2476,46 @@ def _call_openai_chatbot(message: str, context: str) -> str:
     )
 
     try:
-        with urllib.request.urlopen(request, timeout=12) as response:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
             raw = response.read().decode("utf-8")
             result = json.loads(raw)
             return (result.get("choices", [{}])[0].get("message", {}).get("content") or "").strip()
     except Exception:
         return ""
 
+
+def _call_openai_chatbot(message: str, context: str) -> str:
+    """Gọi ChatGPT/OpenAI API nếu có OPENAI_API_KEY.
+
+    Cách dùng:
+    - Thêm OPENAI_API_KEY vào file .env.
+    - Cài thư viện: python -m pip install openai
+    - Nếu API lỗi/hết quota/mất mạng, hàm trả về chuỗi rỗng để chatbot dùng fallback nội bộ.
+    """
+    import os
+
+    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return ""
+
+    model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini").strip() or "gpt-4o-mini"
+
+    system_prompt = (
+        "Bạn là trợ lý AI bán hàng cho website Lumière Django. "
+        "Trả lời bằng tiếng Việt, xưng 'em' và gọi khách là 'Anh/Chị'. "
+        "Dựa trên THÔNG TIN WEBSITE được cung cấp, không bịa dữ liệu ngoài hệ thống. "
+        "Câu trả lời ngắn gọn, thân thiện, tối đa 6 câu hoặc dùng gạch đầu dòng ngắn. "
+        "Nếu khách hỏi mua sản phẩm, hãy gợi ý sản phẩm còn hàng và hướng dẫn bấm xem chi tiết/thêm giỏ. "
+        "Nếu câu hỏi cần thao tác tài khoản, nhắc khách đăng nhập. "
+        "Không yêu cầu thông tin nhạy cảm như mật khẩu, API key hay mã OTP."
+    )
+
+    # Ưu tiên SDK chính thức. Nếu máy chưa cài openai thì tự chuyển sang HTTP thuần.
+    reply = _call_openai_with_sdk(api_key, model, system_prompt, context, message)
+    if reply:
+        return reply
+
+    return _call_openai_with_http(api_key, model, system_prompt, context, message)
 
 def _smart_local_chatbot_reply(message: str, context: str, request) -> str:
     """Fallback thông minh hơn rule cũ: phân tích ý định + dùng dữ liệu context."""

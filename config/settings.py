@@ -136,3 +136,10 @@ USE_X_FORWARDED_HOST = True
 MAX_IMAGE_UPLOAD_SIZE = 5 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = MAX_IMAGE_UPLOAD_SIZE
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+
+# OpenAI / ChatGPT chatbot config
+# API key đặt trong file .env, không viết trực tiếp vào code hoặc JavaScript.
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+OPENAI_CHAT_COMPLETIONS_URL = os.getenv("OPENAI_CHAT_COMPLETIONS_URL", "https://api.openai.com/v1/chat/completions")
+OPENAI_TIMEOUT = int(os.getenv("OPENAI_TIMEOUT", "20"))
