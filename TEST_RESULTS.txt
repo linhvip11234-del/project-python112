@@ -1,4 +1,17 @@
-Added flash sale feature (model, views, templates, admin UI, tests).
-Ran: python manage.py migrate
-Ran: python manage.py check
-Ran: python manage.py test shop.tests.ShopFeatureTests
+KET QUA KIEM THU DU AN LUMIERE
+Ngay kiem thu: 2026-05-04
+
+Lenh da chay:
+1. python manage.py check
+2. python manage.py test -v 2
+
+Ket qua:
+- System check identified no issues (0 silenced).
+- Found 35 test(s).
+- Ran 35 tests in 5.389s.
+- OK.
+
+Ghi chu:
+- Da bo qua cac canh bao Pylint gia cua Django ORM ve `.objects` trong file test.
+- Da dung MD5PasswordHasher trong moi truong test de test chay nhanh hon.
+- Email/OTP trong test dung locmem EmailBackend, khong gui Gmail that.

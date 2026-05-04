@@ -1,0 +1,13 @@
+[MASTER]
+ignore=__pycache__,migrations
+
+[MESSAGES CONTROL]
+disable=
+    no-member,
+    missing-module-docstring,
+    missing-class-docstring,
+    missing-function-docstring,
+    line-too-long
+
+[TYPECHECK]
+generated-members=objects,DoesNotExist,MultipleObjectsReturned

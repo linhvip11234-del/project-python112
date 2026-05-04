@@ -1,3 +1,4 @@
+# pylint: disable=no-member,missing-module-docstring,missing-class-docstring,missing-function-docstring,line-too-long
 import tempfile
 from datetime import timedelta
 
@@ -12,7 +13,11 @@ from .forms import SanPhamForm
 from .models import CartItem, DonHang, InventoryBatch, InventoryHistory, NhaCungCap, PhieuNhapKho, ProductImage, ProductReview, SanPham, UserSecurityProfile, Voucher, Wallet, WalletTransaction
 
 
-@override_settings(MEDIA_ROOT=tempfile.gettempdir())
+@override_settings(
+    MEDIA_ROOT=tempfile.gettempdir(),
+    PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"],
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+)
 class ShopFeatureTests(TestCase):
     def setUp(self):
         self.client = Client()
