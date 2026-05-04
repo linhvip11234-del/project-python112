@@ -82,6 +82,41 @@ TOPUP_STATUS_LABELS = {
     "rejected": "Từ chối",
 }
 
+# Giới hạn số tiền nạp ví để tránh người dùng nhập số quá lớn làm SQLite bị OverflowError.
+MIN_TOPUP_AMOUNT = 10_000
+MAX_TOPUP_AMOUNT = 100_000_000
+
+
+def normalize_topup_amount(raw_amount) -> int:
+    """
+    Chuẩn hóa và kiểm tra số tiền nạp ví.
+
+    Chấp nhận dạng nhập như: 50000, 50.000, 50,000 hoặc có khoảng trắng.
+    Từ chối chữ, số âm, số 0, số quá nhỏ và số quá lớn trước khi ghi database.
+    """
+    raw = str(raw_amount or "").strip()
+    raw = raw.replace(".", "").replace(",", "").replace(" ", "")
+
+    if not raw:
+        raise ValidationError("Vui lòng nhập số tiền cần nạp.")
+
+    if not raw.isdigit():
+        raise ValidationError("Số tiền nạp không hợp lệ. Vui lòng chỉ nhập số.")
+
+    # Chặn chuỗi số quá dài trước khi chuyển sang int để tránh lỗi/treo khi nhập dữ liệu bất thường.
+    if len(raw) > len(str(MAX_TOPUP_AMOUNT)) + 2:
+        raise ValidationError(f"Số tiền nạp tối đa là {MAX_TOPUP_AMOUNT:,} VND.")
+
+    amount = int(raw)
+
+    if amount < MIN_TOPUP_AMOUNT:
+        raise ValidationError(f"Số tiền nạp tối thiểu là {MIN_TOPUP_AMOUNT:,} VND.")
+
+    if amount > MAX_TOPUP_AMOUNT:
+        raise ValidationError(f"Số tiền nạp tối đa là {MAX_TOPUP_AMOUNT:,} VND.")
+
+    return amount
+
 
 
 
@@ -576,8 +611,8 @@ def make_reference(prefix: str) -> str:
 
 @transaction.atomic
 def create_topup_request(*, user: User, amount: int) -> WalletTopUpRequest:
-    if amount <= 0:
-        raise ValidationError("Số tiền nạp phải lớn hơn 0.")
+    # Kiểm tra lại ở tầng service để mọi nơi gọi hàm này đều được bảo vệ.
+    amount = normalize_topup_amount(amount)
 
     wallet = get_or_create_wallet(user)
     reference = make_reference("NAP")

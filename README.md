@@ -94,19 +94,6 @@ Tạo file `.env` ở thư mục gốc dự án, cùng cấp với `manage.py`, 
 OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_CHAT_COMPLETIONS_URL=https://api.openai.com/v1/chat/completions
-OPENAI_TIMEOUT=20
-```
-
-Cài thêm thư viện OpenAI nếu chưa có:
-
-```bash
-python -m pip install openai
-```
-
-Hoặc cài toàn bộ thư viện của dự án:
-
-```bash
-python -m pip install -r requirements.txt
 ```
 
 Sau đó khởi động lại server Django:

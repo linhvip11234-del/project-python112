@@ -78,6 +78,7 @@ from .services import (
     get_saved_addresses,
     save_user_address,
     create_topup_request,
+    normalize_topup_amount,
     get_allowed_statuses,
     get_bank_info,
     get_cart_items,
@@ -1100,15 +1101,9 @@ def wallet_deposit(request):
         return redirect("wallet")
 
     try:
-        amount = int((request.POST.get("amount") or "0").strip())
-    except ValueError:
-        amount = 0
-
-    if amount <= 0:
-        messages.error(request, "Số tiền nạp phải lớn hơn 0.")
-        return redirect("wallet")
-
-    try:
+        # Chuẩn hóa số tiền ở tầng view trước khi gửi xuống service/database.
+        # Việc này giúp chặn số quá lớn gây lỗi SQLite: Python int too large to convert to SQLite INTEGER.
+        amount = normalize_topup_amount(request.POST.get("amount"))
         topup = create_topup_request(user=request.user, amount=amount)
     except ValidationError as exc:
         messages.error(request, str(exc))
@@ -2804,6 +2799,95 @@ def _call_openai_chatbot(message: str, context: str) -> str:
 
     return _call_openai_with_http(api_key, model, system_prompt, context, message)
 
+
+def _format_chat_money(amount) -> str:
+    """Định dạng số tiền để chatbot trả lời dễ đọc."""
+    try:
+        return f"{int(amount or 0):,}đ"
+    except Exception:
+        return "0đ"
+
+
+def _chatbot_active_products():
+    """Lấy danh sách sản phẩm đang hoạt động cho các câu hỏi cần dữ liệu chính xác."""
+    products = list(SanPham.objects.filter(trang_thai="active"))
+    if not products:
+        products = list(SanPham.objects.all())
+    return products
+
+
+def _answer_exact_product_price_question(message: str) -> str:
+    """Trả lời trực tiếp các câu hỏi cần tính toán chính xác từ database.
+
+    Những câu như “sản phẩm nào giá cao nhất/rẻ nhất” không nên để AI đoán
+    hoặc trả lời chung chung. Hàm này truy vấn trực tiếp bảng SanPham, tính
+    giá đang áp dụng theo property gia_hien_tai rồi trả về đúng một kết quả.
+    """
+    text = _normalize_chat_text(message)
+
+    highest_keywords = [
+        "gia cao nhat",
+        "cao nhat",
+        "dat nhat",
+        "mac nhat",
+        "cao tien nhat",
+        "gia dat",
+        "gia cao",
+    ]
+    lowest_keywords = [
+        "gia thap nhat",
+        "thap nhat",
+        "re nhat",
+        "gia re",
+        "gia thap",
+        "tiet kiem nhat",
+    ]
+
+    ask_highest = any(keyword in text for keyword in highest_keywords)
+    ask_lowest = any(keyword in text for keyword in lowest_keywords)
+
+    if not ask_highest and not ask_lowest:
+        return ""
+
+    products = _chatbot_active_products()
+
+    # Nếu người dùng hỏi rõ “còn hàng”, chỉ xét sản phẩm còn tồn kho.
+    if "con hang" in text or "dang con" in text:
+        products = [product for product in products if getattr(product, "con_hang", False)]
+
+    if not products:
+        return "Hiện tại hệ thống chưa có sản phẩm phù hợp để em kiểm tra giá cho Anh/Chị."
+
+    if ask_highest:
+        product = max(products, key=lambda item: int(getattr(item, "gia_hien_tai", 0) or 0))
+        label = "cao nhất"
+    else:
+        product = min(products, key=lambda item: int(getattr(item, "gia_hien_tai", 0) or 0))
+        label = "thấp nhất"
+
+    current_price = int(getattr(product, "gia_hien_tai", 0) or 0)
+    original_price = int(getattr(product, "gia", 0) or 0)
+    stock = int(getattr(product, "ton_kho", 0) or 0)
+    stock_text = "còn hàng" if getattr(product, "con_hang", False) else "hết hàng"
+
+    price_note = _format_chat_money(current_price)
+    if original_price and current_price != original_price:
+        price_note += f" (giá gốc {_format_chat_money(original_price)})"
+
+    promotion_note = ""
+    if getattr(product, "dang_flash_sale", False):
+        promotion_note = " Sản phẩm này đang áp dụng giá Flash Sale."
+    elif getattr(product, "dang_giam_gia", False):
+        promotion_note = " Sản phẩm này đang áp dụng giá khuyến mãi."
+
+    return (
+        f"Sản phẩm có giá {label} hiện tại là {product.ten}.\n"
+        f"- Giá hiện tại: {price_note}.\n"
+        f"- Tồn kho: {stock} sản phẩm ({stock_text})."
+        f"{promotion_note}\n"
+        "Anh/Chị có thể bấm vào sản phẩm để xem chi tiết hoặc thêm vào giỏ hàng ạ."
+    )
+
 def _smart_local_chatbot_reply(message: str, context: str, request) -> str:
     """Fallback thông minh hơn rule cũ: phân tích ý định + dùng dữ liệu context."""
     text = _normalize_chat_text(message)
@@ -2815,6 +2899,11 @@ def _smart_local_chatbot_reply(message: str, context: str, request) -> str:
             "Xin chào Anh/Chị, em là trợ lý AI của cửa hàng Lumière. "
             "Em có thể hỗ trợ tìm sản phẩm, tư vấn đặt hàng, thanh toán, nạp ví, dùng voucher và theo dõi đơn hàng ạ."
         )
+
+    # Câu hỏi cần tính toán chính xác theo giá sản phẩm.
+    exact_price_answer = _answer_exact_product_price_question(message)
+    if exact_price_answer:
+        return exact_price_answer
 
     # Hỏi sản phẩm / tư vấn mua
     product_intent = any(k in text for k in [
@@ -3059,6 +3148,16 @@ def chatbot_api(request):
         return JsonResponse({
             "reply": "Anh/Chị hãy nhập câu hỏi nhé. Ví dụ: 'tư vấn nhẫn làm quà', 'cách đặt hàng', 'ví của tôi còn bao nhiêu?'",
             "quick_replies": quick_replies
+        })
+
+    # Các câu hỏi cần dữ liệu tuyệt đối chính xác từ database sẽ được Django trả lời trước.
+    # Ví dụ: “sản phẩm nào giá cao nhất?”, “món nào rẻ nhất?”.
+    exact_answer = _answer_exact_product_price_question(message)
+    if exact_answer:
+        return JsonResponse({
+            "reply": exact_answer,
+            "quick_replies": quick_replies,
+            "mode": "database_exact"
         })
 
     context = _chatbot_context_for_user(request, message)

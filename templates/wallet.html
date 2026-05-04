@@ -17,10 +17,10 @@
       {% csrf_token %}
       <label for="amount"><b>Tạo yêu cầu nạp tiền bằng VietQR</b></label>
       <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
-        <input class="input" id="amount" name="amount" type="number" min="1000" step="1000" placeholder="Ví dụ: 500000">
+        <input class="input" id="amount" name="amount" type="number" min="10000" max="100000000" step="1000" placeholder="Ví dụ: 500000">
         <button class="btn primary" type="submit">Tạo QR nạp tiền</button>
       </div>
-      <div class="muted" style="margin-top:6px;">Hệ thống sẽ sinh QR chuẩn VietQR ngân hàng và tạo mã tham chiếu riêng cho mỗi lần nạp.</div>
+      <div class="muted" style="margin-top:6px;">Số tiền nạp hợp lệ từ 10.000 VND đến 100.000.000 VND. Hệ thống sẽ sinh QR chuẩn VietQR ngân hàng và tạo mã tham chiếu riêng cho mỗi lần nạp.</div>
     </form>
   </div>
 
