@@ -45,6 +45,28 @@
     .home-slider .carousel-arrow.prev{left:10px;}
     .home-slider .carousel-arrow.next{right:10px;}
   }
+
+  .product-slider-section{position:relative;margin-bottom:26px;}
+  .product-slider-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px;}
+  .product-slider-header .section{margin:0;flex:1;min-width:220px;}
+  .product-slider-nav{display:flex;gap:10px;align-items:center;}
+  .product-slider-btn{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:#fff;color:#8a6d3b;font-size:22px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,.06);transition:all .2s ease;}
+  .product-slider-btn:hover{transform:translateY(-1px);border-color:#cfad6c;background:#fcf7ee;}
+  .product-slider-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+  .product-slider-shell{position:relative;}
+  .product-slider-track{display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 48px) / 4);gap:16px;overflow-x:auto;scroll-behavior:smooth;padding:4px 2px 10px;scroll-snap-type:x mandatory;scrollbar-width:none;}
+  .product-slider-track::-webkit-scrollbar{display:none;}
+  .product-slider-track > *{scroll-snap-align:start;min-width:0;}
+  .product-slider-footer{margin:8px 0 24px;}
+  @media (max-width:1100px){
+    .product-slider-track{grid-auto-columns:calc((100% - 16px) / 2);}
+  }
+  @media (max-width:640px){
+    .product-slider-header{align-items:flex-start;}
+    .product-slider-track{grid-auto-columns:100%;gap:12px;}
+    .product-slider-btn{width:38px;height:38px;font-size:20px;}
+  }
+
 </style>
 
 <div class="hero home-slider">
@@ -169,40 +191,50 @@
   </script>
 
   {% if flash_sale_products and not q and not min_price and not max_price %}
-    <div class="section">
-      <h2>Flash Sale</h2>
-      <div class="hint">Ưu đãi giới hạn thời gian. Giá flash sale sẽ được ưu tiên áp dụng khi đặt hàng.</div>
-    </div>
-    <div class="grid">
-      {% for sp in flash_sale_products %}
-        <div class="card product-card" style="border:1px solid #ffd9d9;">
-          <div class="thumb">{% if sp.anh %}<img src="{{ sp.anh.url }}" alt="{{ sp.ten }}" class="thumb-img">{% endif %}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
-              <span class="status" style="background:#ffefef;color:#c62828;border-color:#ffcaca;">FLASH SALE</span>
-              <span class="muted">{% if sp.flash_sale_end %}Đến {{ sp.flash_sale_end|date:"H:i d/m/Y" }}{% else %}Đang mở{% endif %}</span>
-            </div>
-            <p class="name product-name">{{ sp.ten }}</p>
-            <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
-              <p class="price" style="margin:0;">{{ sp.gia_hien_tai|vnd }} VND</p><span style="display:none;">{{ sp.gia_hien_tai|vnd_comma }}</span>
-              <span class="status" style="background:#fff1f1;color:#c62828;border-color:#f0c7c7;">-{{ sp.phan_tram_giam }}%</span>
-            </div>
-            <p class="muted" style="text-decoration:line-through;">{{ sp.gia|vnd }} VND</p>
-            <div class="muted product-rating">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5 ({{ sp.review_count }} đánh giá)</div>
-            <div class="row product-actions">
-              <a class="btn" href="{% url 'chi_tiet_san_pham' sp.id %}">Xem chi tiết</a>
-              {% if user.is_authenticated %}
-                <form method="post" action="{% url 'add_to_cart' sp.id %}" style="display:inline;">{% csrf_token %}<input type="hidden" name="next" value="{% url 'home' %}"><button class="btn" type="submit">Thêm giỏ hàng</button></form>
-                <a class="btn primary" href="{% url 'dat_hang' sp.id %}">Mua ngay</a>
-              {% else %}
-                <a class="btn primary" href="{% url 'dang_nhap' %}">Đăng nhập để mua</a>
-              {% endif %}
-            </div>
-          </div>
+    <div class="product-slider-section" id="flashSaleSection">
+      <div class="product-slider-header">
+        <div class="section">
+          <h2>Flash Sale</h2>
+          <div class="hint">Ưu đãi giới hạn thời gian. Giá flash sale sẽ được ưu tiên áp dụng khi đặt hàng.</div>
         </div>
-      {% endfor %}
+        <div class="product-slider-nav" aria-label="Điều hướng Flash Sale">
+          <button class="product-slider-btn" type="button" data-slider-prev="flashSaleSlider" aria-label="Xem sản phẩm flash sale trước">&#10094;</button>
+          <button class="product-slider-btn" type="button" data-slider-next="flashSaleSlider" aria-label="Xem sản phẩm flash sale tiếp theo">&#10095;</button>
+        </div>
+      </div>
+      <div class="product-slider-shell">
+        <div class="product-slider-track" id="flashSaleSlider">
+          {% for sp in flash_sale_products %}
+            <div class="card product-card" style="border:1px solid #ffd9d9;">
+              <div class="thumb">{% if sp.anh %}<img src="{{ sp.anh.url }}" alt="{{ sp.ten }}" class="thumb-img">{% endif %}</div>
+              <div class="body">
+                <div class="row" style="justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+                  <span class="status" style="background:#ffefef;color:#c62828;border-color:#ffcaca;">FLASH SALE</span>
+                  <span class="muted">{% if sp.flash_sale_end %}Đến {{ sp.flash_sale_end|date:"H:i d/m/Y" }}{% else %}Đang mở{% endif %}</span>
+                </div>
+                <p class="name product-name">{{ sp.ten }}</p>
+                <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
+                  <p class="price" style="margin:0;">{{ sp.gia_hien_tai|vnd }} VND</p><span style="display:none;">{{ sp.gia_hien_tai|vnd_comma }}</span>
+                  <span class="status" style="background:#fff1f1;color:#c62828;border-color:#f0c7c7;">-{{ sp.phan_tram_giam }}%</span>
+                </div>
+                <p class="muted" style="text-decoration:line-through;">{{ sp.gia|vnd }} VND</p>
+                <div class="muted product-rating">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5 ({{ sp.review_count }} đánh giá)</div>
+                <div class="row product-actions">
+                  <a class="btn" href="{% url 'chi_tiet_san_pham' sp.id %}">Xem chi tiết</a>
+                  {% if user.is_authenticated %}
+                    <form method="post" action="{% url 'add_to_cart' sp.id %}" style="display:inline;">{% csrf_token %}<input type="hidden" name="next" value="{% url 'home' %}"><button class="btn" type="submit">Thêm giỏ hàng</button></form>
+                    <a class="btn primary" href="{% url 'dat_hang' sp.id %}">Mua ngay</a>
+                  {% else %}
+                    <a class="btn primary" href="{% url 'dang_nhap' %}">Đăng nhập để mua</a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="product-slider-footer"><a class="btn" href="{% url 'flash_sale_products' %}">Xem tất cả Flash Sale</a></div>
     </div>
-    <div style="margin:8px 0 24px;"><a class="btn" href="{% url 'flash_sale_products' %}">Xem tất cả Flash Sale</a></div>
   {% endif %}
 
   <div class="section">
@@ -280,26 +312,36 @@
   </div>
 
   {% if discounted_products and not q %}
-    <div class="section">
-      <h2>Sản phẩm giảm giá</h2>
-      <div class="hint">Các mẫu đang có ưu đãi nổi bật ngoài khung giờ flash sale</div>
-    </div>
-    <div class="grid">
-      {% for sp in discounted_products %}
-        <div class="card">
-          <div class="thumb">{% if sp.anh %}<img src="{{ sp.anh.url }}" alt="{{ sp.ten }}" class="thumb-img">{% endif %}</div>
-          <div class="body">
-            <p class="name product-name">{{ sp.ten }}</p>
-            <div class="muted product-rating">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5</div>
-            <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
-              <p class="price" style="margin:0;">{{ sp.gia_hien_tai|vnd }} VND</p><span style="display:none;">{{ sp.gia_hien_tai|vnd_comma }}</span>
-              <span class="status" style="background:#fff1f1;color:#c62828;border-color:#f0c7c7;">-{{ sp.phan_tram_giam }}%</span>
-            </div>
-            <p class="muted" style="text-decoration:line-through;">{{ sp.gia|vnd }} VND</p>
-            <a class="btn" href="{% url 'chi_tiet_san_pham' sp.id %}">Xem chi tiết</a>
-          </div>
+    <div class="product-slider-section" id="discountSection">
+      <div class="product-slider-header">
+        <div class="section">
+          <h2>Sản phẩm giảm giá</h2>
+          <div class="hint">Các mẫu đang có ưu đãi nổi bật ngoài khung giờ flash sale</div>
         </div>
-      {% endfor %}
+        <div class="product-slider-nav" aria-label="Điều hướng sản phẩm giảm giá">
+          <button class="product-slider-btn" type="button" data-slider-prev="discountSlider" aria-label="Xem sản phẩm giảm giá trước">&#10094;</button>
+          <button class="product-slider-btn" type="button" data-slider-next="discountSlider" aria-label="Xem sản phẩm giảm giá tiếp theo">&#10095;</button>
+        </div>
+      </div>
+      <div class="product-slider-shell">
+        <div class="product-slider-track" id="discountSlider">
+          {% for sp in discounted_products %}
+            <div class="card">
+              <div class="thumb">{% if sp.anh %}<img src="{{ sp.anh.url }}" alt="{{ sp.ten }}" class="thumb-img">{% endif %}</div>
+              <div class="body">
+                <p class="name product-name">{{ sp.ten }}</p>
+                <div class="muted product-rating">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5</div>
+                <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
+                  <p class="price" style="margin:0;">{{ sp.gia_hien_tai|vnd }} VND</p><span style="display:none;">{{ sp.gia_hien_tai|vnd_comma }}</span>
+                  <span class="status" style="background:#fff1f1;color:#c62828;border-color:#f0c7c7;">-{{ sp.phan_tram_giam }}%</span>
+                </div>
+                <p class="muted" style="text-decoration:line-through;">{{ sp.gia|vnd }} VND</p>
+                <a class="btn" href="{% url 'chi_tiet_san_pham' sp.id %}">Xem chi tiết</a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
     </div>
   {% endif %}
 
@@ -313,4 +355,41 @@
       </div>
     </div>
   {% endif %}
+  <script>
+    (function () {
+      function initProductSlider(sliderId) {
+        const track = document.getElementById(sliderId);
+        if (!track) return;
+
+        const prevBtn = document.querySelector('[data-slider-prev="' + sliderId + '"]');
+        const nextBtn = document.querySelector('[data-slider-next="' + sliderId + '"]');
+        const getCardWidth = () => {
+          const firstCard = track.children[0];
+          if (!firstCard) return track.clientWidth;
+          const gap = parseFloat(window.getComputedStyle(track).columnGap || window.getComputedStyle(track).gap || 16) || 16;
+          return firstCard.getBoundingClientRect().width + gap;
+        };
+
+        function updateButtons() {
+          if (!prevBtn || !nextBtn) return;
+          const maxScroll = Math.max(track.scrollWidth - track.clientWidth - 4, 0);
+          prevBtn.disabled = track.scrollLeft <= 4;
+          nextBtn.disabled = track.scrollLeft >= maxScroll;
+        }
+
+        function scrollByCard(direction) {
+          track.scrollBy({ left: direction * getCardWidth(), behavior: 'smooth' });
+        }
+
+        prevBtn && prevBtn.addEventListener('click', function () { scrollByCard(-1); });
+        nextBtn && nextBtn.addEventListener('click', function () { scrollByCard(1); });
+        track.addEventListener('scroll', updateButtons, { passive: true });
+        window.addEventListener('resize', updateButtons);
+        updateButtons();
+      }
+
+      initProductSlider('flashSaleSlider');
+      initProductSlider('discountSlider');
+    })();
+  </script>
 {% endblock %}

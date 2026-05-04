@@ -3,16 +3,81 @@
 {% load tien %}
 {% block title %}Home - Lumière{% endblock %}
 {% block content %}
-  <div class="hero">
+  <style>
+  .home-slider{margin:18px 0;}
+  .home-slider .banner-carousel{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#000;box-shadow:0 18px 40px rgba(0,0,0,.08);}
+  .home-slider .carousel-track{position:relative;height:min(420px,42vw);min-height:320px;}
+  .home-slider .carousel-slide{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .55s ease;background-size:cover;background-position:center center;background-repeat:no-repeat;}
+  .home-slider .carousel-slide.active{opacity:1;pointer-events:auto;}
+  .home-slider .slide-overlay{position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.65),rgba(0,0,0,.12));}
+  .home-slider .slide-overlay.soft{background:linear-gradient(90deg,rgba(0,0,0,.58),rgba(0,0,0,.08));}
+  .home-slider .slide-overlay.light{background:linear-gradient(90deg,rgba(255,255,255,.10),rgba(255,255,255,.02));}
+  .home-slider .slide-content{position:absolute;top:50%;transform:translateY(-50%);z-index:2;max-width:560px;color:#fff;}
+  .home-slider .slide-content.align-left{left:34px;}
+  .home-slider .slide-content.align-right{right:34px;}
+  .home-slider .slide-content.dark-text{color:#1a1a1a;}
+  .home-slider .slide-content.dark-text p{color:#423f3f;}
+  .home-slider .slide-content h1{margin:0 0 10px;font-family:"Cormorant Garamond",serif;font-size:44px;line-height:1.06;letter-spacing:.3px;}
+  .home-slider .slide-content p{margin:0 0 14px;color:#eee;font-size:15px;line-height:1.6;}
+  .home-slider .tag{display:inline-block;padding:7px 12px;border-radius:999px;border:1px solid rgba(198,161,91,.5);background:rgba(198,161,91,.18);color:#f2d9a6;font-size:13px;margin-bottom:12px;}
+  .home-slider .tag.tag-light{background:rgba(255,255,255,.76);border-color:rgba(84,84,84,.12);color:#184fa7;}
+  .home-slider .hero-actions{display:flex;gap:10px;flex-wrap:wrap;}
+  .home-slider .carousel-arrow{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;border:0;background:rgba(17,17,17,.42);color:#fff;font-size:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;backdrop-filter:blur(4px);}
+  .home-slider .carousel-arrow:hover{background:rgba(17,17,17,.62);}
+  .home-slider .carousel-arrow.prev{left:18px;}
+  .home-slider .carousel-arrow.next{right:18px;}
+  .home-slider .carousel-dots{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:10px;z-index:3;}
+  .home-slider .carousel-dots button{width:11px;height:11px;border-radius:999px;border:0;background:rgba(255,255,255,.42);padding:0;cursor:pointer;}
+  .home-slider .carousel-dots button.active{width:34px;background:#fff;}
+  @media (max-width:980px){
+    .home-slider .carousel-track{height:360px;min-height:360px;}
+    .home-slider .slide-content{left:24px !important;right:24px !important;max-width:70%;}
+    .home-slider .slide-content h1{font-size:36px;}
+    .home-slider .slide-overlay{background:linear-gradient(0deg,rgba(0,0,0,.68),rgba(0,0,0,.15));}
+  }
+  @media (max-width:720px){
+    .home-slider .carousel-track{height:260px;min-height:260px;}
+    .home-slider .slide-content{left:18px !important;right:18px !important;top:auto;bottom:54px;transform:none;max-width:none;}
+    .home-slider .slide-content h1{font-size:28px;}
+    .home-slider .slide-content p{font-size:14px;margin-bottom:10px;}
+    .home-slider .hero-actions .btn{padding:8px 10px;}
+    .home-slider .carousel-arrow{width:40px;height:40px;font-size:24px;}
+    .home-slider .carousel-arrow.prev{left:10px;}
+    .home-slider .carousel-arrow.next{right:10px;}
+  }
+
+  .product-slider-section{position:relative;margin-bottom:26px;}
+  .product-slider-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px;}
+  .product-slider-header .section{margin:0;flex:1;min-width:220px;}
+  .product-slider-nav{display:flex;gap:10px;align-items:center;}
+  .product-slider-btn{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:#fff;color:#8a6d3b;font-size:22px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 8px 20px rgba(0,0,0,.06);transition:all .2s ease;}
+  .product-slider-btn:hover{transform:translateY(-1px);border-color:#cfad6c;background:#fcf7ee;}
+  .product-slider-btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+  .product-slider-shell{position:relative;}
+  .product-slider-track{display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - 48px) / 4);gap:16px;overflow-x:auto;scroll-behavior:smooth;padding:4px 2px 10px;scroll-snap-type:x mandatory;scrollbar-width:none;}
+  .product-slider-track::-webkit-scrollbar{display:none;}
+  .product-slider-track > *{scroll-snap-align:start;min-width:0;}
+  .product-slider-footer{margin:8px 0 24px;}
+  @media (max-width:1100px){
+    .product-slider-track{grid-auto-columns:calc((100% - 16px) / 2);}
+  }
+  @media (max-width:640px){
+    .product-slider-header{align-items:flex-start;}
+    .product-slider-track{grid-auto-columns:100%;gap:12px;}
+    .product-slider-btn{width:38px;height:38px;font-size:20px;}
+  }
+
+</style>
+
+<div class="hero home-slider">
     <div class="banner-carousel" id="homeBannerCarousel" aria-label="Banner trang chủ">
       <button class="carousel-arrow prev" type="button" aria-label="Banner trước">&#10094;</button>
       <button class="carousel-arrow next" type="button" aria-label="Banner tiếp theo">&#10095;</button>
 
       <div class="carousel-track">
-        <div class="carousel-slide active">
-          <img src="{% static 'banner.png' %}" alt="Bộ sưu tập thời trang nữ tối giản">
-          <div class="overlay"></div>
-          <div class="content align-left">
+        <div class="carousel-slide active" style="background-image:url('{% static 'banner.png' %}');">
+          <div class="slide-overlay"></div>
+          <div class="slide-content align-left">
             <span class="tag">Bộ sưu tập nổi bật</span>
             <h1>LIGHT LIFE, LIGHT WEAR</h1>
             <p>Phong cách thanh lịch, hiện đại và tinh tế cho mọi khoảnh khắc thường ngày.</p>
@@ -23,10 +88,9 @@
           </div>
         </div>
 
-        <div class="carousel-slide">
-          <img src="{% static 'banners/banner-ring.jpg' %}" alt="Banner nhẫn nam cao cấp">
-          <div class="overlay overlay-soft"></div>
-          <div class="content align-left narrow">
+        <div class="carousel-slide" style="background-image:url('{% static 'banners/banner-ring.jpg' %}'); background-position:center 38%;">
+          <div class="slide-overlay soft"></div>
+          <div class="slide-content align-left" style="max-width:500px;">
             <span class="tag">Lumière nam</span>
             <h1>Vẻ đẹp uy quyền của Lumière nhẫn nam</h1>
             <p>Thiết kế mạnh mẽ, sang trọng và tạo điểm nhấn khác biệt cho phái mạnh.</p>
@@ -36,27 +100,25 @@
           </div>
         </div>
 
-        <div class="carousel-slide">
-          <img src="{% static 'banners/banner-moissanite.png' %}" alt="Banner nữ trang bạc đính Moissanite ưu đãi 20 phần trăm">
-          <div class="overlay overlay-light"></div>
-          <div class="content align-right dark-text">
+        <div class="carousel-slide" style="background-image:url('{% static 'banners/banner-moissanite.png' %}');">
+          <div class="slide-overlay light"></div>
+          <div class="slide-content align-right dark-text">
             <span class="tag tag-light">Ưu đãi nổi bật</span>
             <h1>Nữ trang bạc đính Moissanite</h1>
             <p>Thiết kế tinh xảo, tỏa sáng sang trọng với ưu đãi hấp dẫn dành cho bộ sưu tập mới.</p>
-            <div class="hero-actions right">
+            <div class="hero-actions">
               <a class="btn primary" href="{% url 'home' %}?q=Bạc">Khám phá ngay</a>
             </div>
           </div>
         </div>
 
-        <div class="carousel-slide">
-          <img src="{% static 'banners/banner-new.jpg' %}" alt="Banner sản phẩm mới Lumière bạc">
-          <div class="overlay overlay-light"></div>
-          <div class="content align-right dark-text">
+        <div class="carousel-slide" style="background-image:url('{% static 'banners/banner-new.jpg' %}');">
+          <div class="slide-overlay light"></div>
+          <div class="slide-content align-right dark-text">
             <span class="tag tag-light">Sản phẩm mới</span>
             <h1>Rạng ngời bản sắc riêng</h1>
             <p>Những mẫu dây chuyền và nhẫn mới giúp bạn tỏa sáng theo phong cách riêng.</p>
-            <div class="hero-actions right">
+            <div class="hero-actions">
               <a class="btn primary" href="{% url 'home' %}?sort=newest">Xem sản phẩm mới</a>
             </div>
           </div>
@@ -129,41 +191,50 @@
   </script>
 
   {% if flash_sale_products and not q and not min_price and not max_price %}
-    <div class="section">
-      <h2>Flash Sale</h2>
-      <div class="hint">Ưu đãi giới hạn thời gian. Giá flash sale sẽ được ưu tiên áp dụng khi đặt hàng.</div>
-    </div>
-    <div class="grid">
-      {% for sp in flash_sale_products %}
-        <div class="card" style="border:1px solid #ffd9d9;">
-          <div class="thumb">{% if sp.anh %}<img src="{{ sp.anh.url }}" alt="{{ sp.ten }}" class="thumb-img">{% endif %}</div>
-          <div class="body">
-            <div class="row" style="justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
-              <span class="status" style="background:#ffefef;color:#c62828;border-color:#ffcaca;">FLASH SALE</span>
-              <span class="muted">{% if sp.flash_sale_end %}Đến {{ sp.flash_sale_end|date:"H:i d/m/Y" }}{% else %}Đang mở{% endif %}</span>
-            </div>
-            <p class="name">{{ sp.ten }}</p>
-            <p class="muted" style="min-height:40px;">{{ sp.mo_ta_ngan }}</p>
-            <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
-              <p class="price" style="margin:0;">{{ sp.gia_hien_tai|vnd }} VND</p><span style="display:none;">{{ sp.gia_hien_tai|vnd_comma }}</span>
-              <span class="status" style="background:#fff1f1;color:#c62828;border-color:#f0c7c7;">-{{ sp.phan_tram_giam }}%</span>
-            </div>
-            <p class="muted" style="text-decoration:line-through;">{{ sp.gia|vnd }} VND</p>
-            <div class="muted" style="margin-bottom:6px;">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5 ({{ sp.review_count }} đánh giá)</div>
-            <div class="row" style="margin-bottom:8px;flex-wrap:wrap;">
-              <a class="btn" href="{% url 'chi_tiet_san_pham' sp.id %}">Xem chi tiết</a>
-              {% if user.is_authenticated %}
-                <form method="post" action="{% url 'add_to_cart' sp.id %}" style="display:inline;">{% csrf_token %}<input type="hidden" name="next" value="{% url 'home' %}"><button class="btn" type="submit">Thêm giỏ hàng</button></form>
-                <a class="btn primary" href="{% url 'dat_hang' sp.id %}">Mua ngay</a>
-              {% else %}
-                <a class="btn primary" href="{% url 'dang_nhap' %}">Đăng nhập để mua</a>
-              {% endif %}
-            </div>
-          </div>
+    <div class="product-slider-section" id="flashSaleSection">
+      <div class="product-slider-header">
+        <div class="section">
+          <h2>Flash Sale</h2>
+          <div class="hint">Ưu đãi giới hạn thời gian. Giá flash sale sẽ được ưu tiên áp dụng khi đặt hàng.</div>
         </div>
-      {% endfor %}
+        <div class="product-slider-nav" aria-label="Điều hướng Flash Sale">
+          <button class="product-slider-btn" type="button" data-slider-prev="flashSaleSlider" aria-label="Xem sản phẩm flash sale trước">&#10094;</button>
+          <button class="product-slider-btn" type="button" data-slider-next="flashSaleSlider" aria-label="Xem sản phẩm flash sale tiếp theo">&#10095;</button>
+        </div>
+      </div>
+      <div class="product-slider-shell">
+        <div class="product-slider-track" id="flashSaleSlider">
+          {% for sp in flash_sale_products %}
+            <div class="card product-card" style="border:1px solid #ffd9d9;">
+              <div class="thumb">{% if sp.anh %}<img src="{{ sp.anh.url }}" alt="{{ sp.ten }}" class="thumb-img">{% endif %}</div>
+              <div class="body">
+                <div class="row" style="justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px;">
+                  <span class="status" style="background:#ffefef;color:#c62828;border-color:#ffcaca;">FLASH SALE</span>
+                  <span class="muted">{% if sp.flash_sale_end %}Đến {{ sp.flash_sale_end|date:"H:i d/m/Y" }}{% else %}Đang mở{% endif %}</span>
+                </div>
+                <p class="name product-name">{{ sp.ten }}</p>
+                <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
+                  <p class="price" style="margin:0;">{{ sp.gia_hien_tai|vnd }} VND</p><span style="display:none;">{{ sp.gia_hien_tai|vnd_comma }}</span>
+                  <span class="status" style="background:#fff1f1;color:#c62828;border-color:#f0c7c7;">-{{ sp.phan_tram_giam }}%</span>
+                </div>
+                <p class="muted" style="text-decoration:line-through;">{{ sp.gia|vnd }} VND</p>
+                <div class="muted product-rating">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5 ({{ sp.review_count }} đánh giá)</div>
+                <div class="row product-actions">
+                  <a class="btn" href="{% url 'chi_tiet_san_pham' sp.id %}">Xem chi tiết</a>
+                  {% if user.is_authenticated %}
+                    <form method="post" action="{% url 'add_to_cart' sp.id %}" style="display:inline;">{% csrf_token %}<input type="hidden" name="next" value="{% url 'home' %}"><button class="btn" type="submit">Thêm giỏ hàng</button></form>
+                    <a class="btn primary" href="{% url 'dat_hang' sp.id %}">Mua ngay</a>
+                  {% else %}
+                    <a class="btn primary" href="{% url 'dang_nhap' %}">Đăng nhập để mua</a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="product-slider-footer"><a class="btn" href="{% url 'flash_sale_products' %}">Xem tất cả Flash Sale</a></div>
     </div>
-    <div style="margin:8px 0 24px;"><a class="btn" href="{% url 'flash_sale_products' %}">Xem tất cả Flash Sale</a></div>
   {% endif %}
 
   <div class="section">
@@ -196,7 +267,7 @@
 
   <div class="grid">
     {% for sp in ds %}
-      <div class="card">
+      <div class="card product-card">
         <div class="thumb">
           {% if sp.anh %}<img src="{{ sp.anh.url }}" alt="{{ sp.ten }}" class="thumb-img">{% else %}JEWELRY{% endif %}
         </div>
@@ -209,9 +280,8 @@
               <span class="status" style="background:#fff7e8;color:#9a5b00;border-color:#f3ddb2;">Giảm giá</span>
             {% endif %}
           </div>
-          <p class="name">{{ sp.ten }}</p>
-          <p class="muted" style="min-height:40px;margin:0 0 8px;">{{ sp.mo_ta_ngan }}</p>
-          <div class="muted" style="margin-bottom:8px;">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5 ({{ sp.review_count }} đánh giá)</div>
+          <p class="name product-name">{{ sp.ten }}</p>
+          <div class="muted product-rating">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5 ({{ sp.review_count }} đánh giá)</div>
           {% if sp.dang_flash_sale or sp.dang_giam_gia %}
             <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
               <p class="price" style="margin:0;">{{ sp.gia_hien_tai|vnd }} VND</p><span style="display:none;">{{ sp.gia_hien_tai|vnd_comma }}</span>
@@ -221,8 +291,8 @@
           {% else %}
             <p class="price">{{ sp.gia|vnd }} VND</p>
           {% endif %}
-          <div class="muted" style="margin-bottom:8px;">Tồn kho: {{ sp.ton_kho }}</div>
-          <div class="row" style="margin-bottom:8px;flex-wrap:wrap;">
+          <div class="muted product-stock">Tồn kho: {{ sp.ton_kho }}</div>
+          <div class="row product-actions">
             <a class="btn" href="{% url 'chi_tiet_san_pham' sp.id %}">Xem chi tiết</a>
             {% if user.is_authenticated %}
               <form method="post" action="{% url 'add_to_cart' sp.id %}" style="display:inline;">{% csrf_token %}
@@ -242,27 +312,36 @@
   </div>
 
   {% if discounted_products and not q %}
-    <div class="section">
-      <h2>Sản phẩm giảm giá</h2>
-      <div class="hint">Các mẫu đang có ưu đãi nổi bật ngoài khung giờ flash sale</div>
-    </div>
-    <div class="grid">
-      {% for sp in discounted_products %}
-        <div class="card">
-          <div class="thumb">{% if sp.anh %}<img src="{{ sp.anh.url }}" alt="{{ sp.ten }}" class="thumb-img">{% endif %}</div>
-          <div class="body">
-            <p class="name">{{ sp.ten }}</p>
-            <p class="muted" style="min-height:40px;">{{ sp.mo_ta_ngan }}</p>
-            <div class="muted" style="margin-bottom:8px;">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5</div>
-            <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
-              <p class="price" style="margin:0;">{{ sp.gia_hien_tai|vnd }} VND</p><span style="display:none;">{{ sp.gia_hien_tai|vnd_comma }}</span>
-              <span class="status" style="background:#fff1f1;color:#c62828;border-color:#f0c7c7;">-{{ sp.phan_tram_giam }}%</span>
-            </div>
-            <p class="muted" style="text-decoration:line-through;">{{ sp.gia|vnd }} VND</p>
-            <a class="btn" href="{% url 'chi_tiet_san_pham' sp.id %}">Xem chi tiết</a>
-          </div>
+    <div class="product-slider-section" id="discountSection">
+      <div class="product-slider-header">
+        <div class="section">
+          <h2>Sản phẩm giảm giá</h2>
+          <div class="hint">Các mẫu đang có ưu đãi nổi bật ngoài khung giờ flash sale</div>
         </div>
-      {% endfor %}
+        <div class="product-slider-nav" aria-label="Điều hướng sản phẩm giảm giá">
+          <button class="product-slider-btn" type="button" data-slider-prev="discountSlider" aria-label="Xem sản phẩm giảm giá trước">&#10094;</button>
+          <button class="product-slider-btn" type="button" data-slider-next="discountSlider" aria-label="Xem sản phẩm giảm giá tiếp theo">&#10095;</button>
+        </div>
+      </div>
+      <div class="product-slider-shell">
+        <div class="product-slider-track" id="discountSlider">
+          {% for sp in discounted_products %}
+            <div class="card">
+              <div class="thumb">{% if sp.anh %}<img src="{{ sp.anh.url }}" alt="{{ sp.ten }}" class="thumb-img">{% endif %}</div>
+              <div class="body">
+                <p class="name product-name">{{ sp.ten }}</p>
+                <div class="muted product-rating">{{ sp.rating_stars }} • {{ sp.average_rating|floatformat:1 }}/5</div>
+                <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap;">
+                  <p class="price" style="margin:0;">{{ sp.gia_hien_tai|vnd }} VND</p><span style="display:none;">{{ sp.gia_hien_tai|vnd_comma }}</span>
+                  <span class="status" style="background:#fff1f1;color:#c62828;border-color:#f0c7c7;">-{{ sp.phan_tram_giam }}%</span>
+                </div>
+                <p class="muted" style="text-decoration:line-through;">{{ sp.gia|vnd }} VND</p>
+                <a class="btn" href="{% url 'chi_tiet_san_pham' sp.id %}">Xem chi tiết</a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
     </div>
   {% endif %}
 
@@ -276,4 +355,41 @@
       </div>
     </div>
   {% endif %}
+  <script>
+    (function () {
+      function initProductSlider(sliderId) {
+        const track = document.getElementById(sliderId);
+        if (!track) return;
+
+        const prevBtn = document.querySelector('[data-slider-prev="' + sliderId + '"]');
+        const nextBtn = document.querySelector('[data-slider-next="' + sliderId + '"]');
+        const getCardWidth = () => {
+          const firstCard = track.children[0];
+          if (!firstCard) return track.clientWidth;
+          const gap = parseFloat(window.getComputedStyle(track).columnGap || window.getComputedStyle(track).gap || 16) || 16;
+          return firstCard.getBoundingClientRect().width + gap;
+        };
+
+        function updateButtons() {
+          if (!prevBtn || !nextBtn) return;
+          const maxScroll = Math.max(track.scrollWidth - track.clientWidth - 4, 0);
+          prevBtn.disabled = track.scrollLeft <= 4;
+          nextBtn.disabled = track.scrollLeft >= maxScroll;
+        }
+
+        function scrollByCard(direction) {
+          track.scrollBy({ left: direction * getCardWidth(), behavior: 'smooth' });
+        }
+
+        prevBtn && prevBtn.addEventListener('click', function () { scrollByCard(-1); });
+        nextBtn && nextBtn.addEventListener('click', function () { scrollByCard(1); });
+        track.addEventListener('scroll', updateButtons, { passive: true });
+        window.addEventListener('resize', updateButtons);
+        updateButtons();
+      }
+
+      initProductSlider('flashSaleSlider');
+      initProductSlider('discountSlider');
+    })();
+  </script>
 {% endblock %}
