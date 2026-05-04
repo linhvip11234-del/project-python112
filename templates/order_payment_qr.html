@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% load tien static %}
+{# Template order_payment_qr.html: trang hiển thị mã QR thanh toán đơn hàng. #}
 {% block title %}Thanh toán chuyển khoản{% endblock %}
 {% block content %}
+{# Khối nội dung chính hiển thị cho người dùng. #}
 <div class="payment-page" style="max-width:1120px;margin:16px auto 28px;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px;">
     <div>
@@ -60,11 +62,13 @@
         Khi khách quét mã, app ngân hàng sẽ tự điền số tiền <b>{{ don.tong_tien|vnd }} VND</b> và nội dung <b>{{ don.ma_thanh_toan }}</b>.
         Hệ thống demo sẽ mô phỏng callback sau <b>{{ auto_seconds }} giây</b>.
       </div>
+      {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
       <form id="orderCallbackForm" method="post" action="{% url 'order_payment_callback' don.id %}" style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
         {% csrf_token %}
         <button class="btn primary" type="submit">Tôi đã chuyển khoản</button>
         <a class="btn" href="{% url 'ds_don' %}">Về đơn hàng</a>
       </form>
+      {# JavaScript xử lý tương tác phía trình duyệt. #}
       <script>
         setTimeout(function(){
           const form = document.getElementById('orderCallbackForm');

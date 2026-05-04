@@ -1,8 +1,11 @@
 {% extends "base.html" %}
+{# Template dang_nhap.html: giao diện đăng nhập người dùng. #}
 {% block title %}Đăng nhập{% endblock %}
 {% block content %}
+{# Khối nội dung chính hiển thị cho người dùng. #}
 <h2 style="font-family:'Cormorant Garamond',serif;margin:18px 0 10px;">Đăng nhập</h2>
 {% if loi %}<div class="err">{{ loi }}</div>{% endif %}
+{# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
 <form method="post" class="formbox">
   {% csrf_token %}
   <p>Tên đăng nhập:<br><input class="input" name="username" placeholder="Ví dụ: user_demo"></p>

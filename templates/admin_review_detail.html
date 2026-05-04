@@ -1,6 +1,8 @@
 {% extends "admin_base.html" %}
+{# Template admin_review_detail.html: template quản trị đánh giá sản phẩm và ảnh đánh giá. #}
 {% block title %}Admin - Chi tiết đánh giá{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
   <div class="card admin-card">
     <div class="row" style="justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
       <div>
@@ -10,6 +12,7 @@
       <div class="admin-actions">
         <a class="btn" href="{% url 'admin_review_list' %}">← Danh sách</a>
         <a class="btn" href="{% url 'admin_review_edit' review.id %}">Sửa</a>
+        {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
         <form method="post" action="{% url 'admin_review_toggle' review.id %}">
           {% csrf_token %}
           <button class="btn" type="submit">{% if review.is_visible %}Ẩn đánh giá{% else %}Hiện đánh giá{% endif %}</button>

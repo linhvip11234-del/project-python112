@@ -1,6 +1,8 @@
 {% extends "admin_base.html" %}
+{# Template admin_review_delete.html: template quản trị đánh giá sản phẩm và ảnh đánh giá. #}
 {% block title %}Admin - Xoá đánh giá{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
   <div class="card admin-card" style="max-width:760px;">
     <h2 style="margin-top:0;">Xoá đánh giá #{{ review.id }}?</h2>
     <p>Đánh giá của <b>{{ review.user.username }}</b> cho sản phẩm <b>{{ review.san_pham.ten }}</b> sẽ bị xoá vĩnh viễn.</p>
@@ -9,6 +11,7 @@
       <div style="font-weight:800;margin-top:6px;">{{ review.title|default:"Không có tiêu đề" }}</div>
       <div class="muted" style="margin-top:6px;white-space:pre-line;">{{ review.comment|default:"Không có nội dung." }}</div>
     </div>
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="post" class="row" style="gap:10px;flex-wrap:wrap;">
       {% csrf_token %}
       <button class="btn danger" type="submit">Xác nhận xoá</button>

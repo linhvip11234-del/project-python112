@@ -1,7 +1,9 @@
 {% extends "admin_base.html" %}
 {% load tien %}
+{# Template admin_receipt_list.html: template quản trị phiếu nhập kho. #}
 {% block title %}Admin - Phiếu nhập kho{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
 <div class="card" style="padding:18px;">
   <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
     <div>
@@ -14,6 +16,7 @@
     </div>
   </div>
 
+  {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
   <form method="get" class="filter-bar" style="margin-top:12px;">
     <input class="input" name="q" value="{{ q }}" placeholder="Tìm theo mã phiếu, sản phẩm, mã lô...">
     <select class="input" name="status">

@@ -1,6 +1,8 @@
 {% extends "admin_base.html" %}
+{# Template admin_inventory_adjust.html: template quản trị kho hàng và biến động tồn kho. #}
 {% block title %}Admin - Cập nhật kho{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
 <div class="card" style="padding:18px;max-width:760px;">
   <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
     <div>
@@ -10,6 +12,7 @@
     <a class="btn" href="{% url 'admin_inventory_detail' sp.id %}">Quay lại</a>
   </div>
 
+  {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
   <form method="post" style="margin-top:14px;">
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="alert-error">{{ form.non_field_errors }}</div>{% endif %}

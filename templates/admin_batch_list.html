@@ -1,7 +1,9 @@
 {% extends "admin_base.html" %}
 {% load tien %}
+{# Template admin_batch_list.html: template quản trị lô hàng nhập kho. #}
 {% block title %}Admin - Lô hàng{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
 <div class="card" style="padding:18px;">
   <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
     <div>
@@ -10,6 +12,7 @@
     </div>
     <a class="btn" href="{% url 'admin_receipt_list' %}">Xem phiếu nhập</a>
   </div>
+  {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
   <form method="get" class="filter-bar" style="margin-top:12px;">
     <input class="input" name="q" value="{{ q }}" placeholder="Tìm theo mã lô, sản phẩm, phiếu nhập...">
     <select class="input" name="sort">

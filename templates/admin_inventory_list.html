@@ -1,7 +1,9 @@
 {% extends "admin_base.html" %}
 {% load tien %}
+{# Template admin_inventory_list.html: template quản trị kho hàng và biến động tồn kho. #}
 {% block title %}Admin - Quản lý kho{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
 <div class="card" style="padding:18px;">
   <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
     <div>
@@ -11,6 +13,7 @@
     <a class="btn" href="{% url 'admin_sanpham_list' %}">Xem sản phẩm</a>
   </div>
 
+  {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
   <form method="get" class="filter-bar" style="margin-top:12px;">
     <input class="input" name="q" value="{{ q }}" placeholder="Tìm theo tên sản phẩm...">
     <select class="input" name="stock_status">
@@ -29,6 +32,7 @@
   </form>
 
   <div class="table-wrap" style="margin-top:12px;">
+    {# Bảng hiển thị danh sách dữ liệu hoặc thông tin chi tiết. #}
     <table class="tbl">
       <thead>
         <tr>

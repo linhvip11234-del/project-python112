@@ -1,13 +1,16 @@
 {% extends "admin_base.html" %}
 {% load tien %}
+{# Template admin_sanpham_list.html: template quản trị sản phẩm: danh sách, chi tiết, thêm, sửa hoặc xoá sản phẩm. #}
 {% block title %}Admin - Sản phẩm{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
   <div class="card" style="padding:18px;">
     <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
       <h2 style="margin:0;">Sản phẩm</h2>
       <a class="btn primary" href="{% url 'admin_sanpham_create' %}">+ Thêm</a>
     </div>
 
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="get" class="filter-bar" style="margin-top:12px;">
       <input class="input" name="q" value="{{ q }}" placeholder="Tìm theo tên...">
       <select class="input" name="trang_thai">
@@ -26,6 +29,7 @@
     </form>
 
     <div class="table-wrap" style="margin-top:12px;">
+      {# Bảng hiển thị danh sách dữ liệu hoặc thông tin chi tiết. #}
       <table class="tbl">
         <thead>
           <tr>

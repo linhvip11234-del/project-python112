@@ -1,6 +1,8 @@
 {% extends "admin_base.html" %}
+{# Template admin_review_list.html: template quản trị đánh giá sản phẩm và ảnh đánh giá. #}
 {% block title %}Admin - Đánh giá{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
   <div class="card admin-card">
     <div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
       <div>
@@ -20,6 +22,7 @@
       <div class="stat"><div class="stat-k">Điểm trung bình</div><div class="stat-v">{{ avg_rating|floatformat:1 }}</div><div class="muted">/ 5 sao</div></div>
     </div>
 
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="get" class="admin-filter" style="margin-top:14px;">
       <input class="input" name="q" value="{{ q }}" placeholder="Tìm sản phẩm, user, tiêu đề, nội dung..." />
       <select class="input" name="rating">
@@ -49,6 +52,7 @@
   </div>
 
   <div class="card" style="padding:0;margin-top:14px;overflow:hidden;">
+    {# Bảng hiển thị danh sách dữ liệu hoặc thông tin chi tiết. #}
     <table class="admin-table">
       <thead>
         <tr>

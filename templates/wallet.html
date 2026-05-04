@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% load tien %}
+{# Template wallet.html: trang ví điện tử và lịch sử giao dịch của người dùng. #}
 {% block title %}Ví điện tử{% endblock %}
 {% block content %}
+{# Khối nội dung chính hiển thị cho người dùng. #}
 <h2 style="font-family:'Cormorant Garamond',serif;margin:18px 0 10px;">Ví điện tử</h2>
 
 <div class="split-2">
@@ -10,6 +12,7 @@
     <div style="font-size:28px;font-weight:700;margin:8px 0 6px;">{{ wallet.balance|vnd }} VND</div>
     <div class="muted">Số dư khả dụng hiện tại của bạn.</div>
 
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="post" action="{% url 'wallet_deposit' %}" style="margin-top:16px;">
       {% csrf_token %}
       <label for="amount"><b>Tạo yêu cầu nạp tiền bằng VietQR</b></label>
@@ -36,6 +39,7 @@
 
 <h3 style="margin:18px 0 10px;">Lịch sử yêu cầu nạp tiền</h3>
 <div class="table-wrap">
+  {# Bảng hiển thị danh sách dữ liệu hoặc thông tin chi tiết. #}
   <table class="tbl">
     <tr style="background:#faf7ef;">
       <th>Thời gian</th>

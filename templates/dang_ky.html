@@ -1,10 +1,13 @@
 {% extends "base.html" %}
+{# Template dang_ky.html: giao diện đăng ký tài khoản mới. #}
 {% block title %}Đăng ký{% endblock %}
 {% block content %}
+{# Khối nội dung chính hiển thị cho người dùng. #}
 <h2 style="font-family:'Cormorant Garamond',serif;margin:18px 0 10px;">Đăng ký</h2>
 <div class="formbox">
   <p class="muted" style="margin-top:0;">Tạo tài khoản và chọn 2 câu hỏi bảo mật để dùng khi khôi phục mật khẩu, tương tự luồng bảo mật khi tạo tài khoản iCloud.</p>
   {% if form.non_field_errors %}<div class="err">{{ form.non_field_errors|join:", " }}</div>{% endif %}
+  {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
   <form method="post">
     {% csrf_token %}
     <p>Tên đăng nhập:<br>{{ form.username }}{% if form.username.errors %}<div class="err">{{ form.username.errors|join:", " }}</div>{% endif %}</p>

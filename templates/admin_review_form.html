@@ -1,10 +1,13 @@
 {% extends "admin_base.html" %}
+{# Template admin_review_form.html: template quản trị đánh giá sản phẩm và ảnh đánh giá. #}
 {% block title %}Admin - Sửa đánh giá{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
   <div class="card admin-card">
     <h2 style="margin-top:0;">Sửa đánh giá #{{ review.id }}</h2>
     <div class="muted" style="margin-bottom:14px;">Sản phẩm: <b>{{ review.san_pham.ten }}</b> • Khách hàng: <b>{{ review.user.username }}</b></div>
 
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="post" enctype="multipart/form-data" style="display:grid;gap:14px;max-width:760px;">
       {% csrf_token %}
       {% if form.non_field_errors %}<div class="alert">{{ form.non_field_errors }}</div>{% endif %}

@@ -1,10 +1,13 @@
 {% extends "base.html" %}
 {% load tien %}
+{# Template don_hang_admin.html: trang quản lý đơn hàng dạng cũ hoặc hỗ trợ Admin. #}
 {% block title %}Admin - Đơn hàng{% endblock %}
 {% block content %}
+{# Khối nội dung chính hiển thị cho người dùng. #}
 <h2 style="font-family:'Cormorant Garamond',serif;margin:18px 0 10px;">Quản lý đơn hàng (Admin)</h2>
 <p style="color:#666;margin:0 0 12px;">Chỉ tài khoản <b>staff</b> mới vào được trang này. Demo duyệt/từ chối.</p>
 
+{# Bảng hiển thị danh sách dữ liệu hoặc thông tin chi tiết. #}
 <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e8e3d9;border-radius:14px;overflow:hidden;">
   <tr style="background:#faf7ef;">
     <th style="padding:10px;text-align:left;">ID</th>

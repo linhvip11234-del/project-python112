@@ -1,7 +1,9 @@
 {% extends "admin_base.html" %}
 {% load tien %}
+{# Template admin_inventory_detail.html: template quản trị kho hàng và biến động tồn kho. #}
 {% block title %}Admin - Chi tiết kho{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
 <div class="card" style="padding:18px;">
   <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
     <div>
@@ -37,6 +39,7 @@
 <div class="card" style="padding:18px;margin-top:14px;">
   <h3 style="margin:0 0 10px;">Lịch sử nhập / xuất kho</h3>
   <div class="table-wrap">
+    {# Bảng hiển thị danh sách dữ liệu hoặc thông tin chi tiết. #}
     <table class="tbl">
       <thead>
         <tr>

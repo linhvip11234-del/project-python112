@@ -1,6 +1,8 @@
 {% extends "base.html" %}
+{# Template admin_base.html: layout nền cho khu vực quản trị, chứa menu Admin và vùng nội dung quản trị. #}
 {% block title %}Admin{% endblock %}
 {% block content %}
+{# Khối nội dung chính hiển thị cho người dùng. #}
 <div class="admin-wrap">
   <aside class="admin-side card">
     <div class="admin-side-title">BẢNG ĐIỀU KHIỂN</div>
@@ -24,7 +26,8 @@
   </aside>
 
   <section class="admin-main">
-    {% block admin_content %}{% endblock %}
+    {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}{% endblock %}
   </section>
 </div>
 {% endblock %}

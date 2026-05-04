@@ -1,7 +1,9 @@
 {% extends "admin_base.html" %}
 {% load tien %}
+{# Template admin_topup_detail.html: template quản trị yêu cầu nạp ví điện tử. #}
 {% block title %}Admin - Chi tiết nạp tiền{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
 <div class="card" style="padding:18px;">
   <div class="row" style="justify-content:space-between;gap:16px;flex-wrap:wrap;">
     <div>
@@ -27,6 +29,7 @@
   <div class="row" style="gap:10px;flex-wrap:wrap;align-items:flex-start;margin-top:12px;">
     <a class="btn" href="{% url 'admin_topup_list' %}">Quay lại</a>
     {% if topup.status != 'approved' and topup.status != 'rejected' %}
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="post" action="{% url 'admin_topup_approve' topup.id %}">
       {% csrf_token %}
       <button class="btn primary" type="submit">Duyệt và cộng ví</button>

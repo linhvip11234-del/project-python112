@@ -1,12 +1,15 @@
 {% extends "base.html" %}
+{# Template dat_lai_mat_khau_otp.html: xác thực OTP và đặt lại mật khẩu. #}
 {% block title %}Đặt lại mật khẩu{% endblock %}
 {% block content %}
+{# Khối nội dung chính hiển thị cho người dùng. #}
 <h2 style="font-family:'Cormorant Garamond',serif;margin:18px 0 10px;">Đặt lại mật khẩu bằng OTP</h2>
 <div class="formbox">
   <p class="muted" style="margin-top:0;">OTP đã được gửi tới <b>{{ masked_email }}</b>. Mã còn hiệu lực khoảng {{ remaining_seconds }} giây.</p>
   {% if form.non_field_errors %}
     <div class="err">{{ form.non_field_errors }}</div>
   {% endif %}
+  {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
   <form method="post">
     {% csrf_token %}
     <p>

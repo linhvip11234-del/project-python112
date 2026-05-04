@@ -1,13 +1,16 @@
 {% extends "admin_base.html" %}
 {% load tien %}
+{# Template admin_donhang_list.html: template quản trị đơn hàng: danh sách, chi tiết, tạo/sửa/xoá và cập nhật trạng thái. #}
 {% block title %}Admin - Đơn hàng{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
   <div class="card admin-card">
     <div class="row" style="justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
       <h2 style="margin:0;">Đơn hàng</h2>
       <a class="btn primary" href="{% url 'admin_donhang_create' %}">+ Thêm đơn</a>
     </div>
 
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="get" class="admin-filter">
       <input class="input" name="q" value="{{ q }}" placeholder="Tìm: user / họ tên / SĐT / sản phẩm / địa chỉ" />
       <select class="input" name="trang_thai">
@@ -33,6 +36,7 @@
   </div>
 
   <div class="card" style="padding:0;margin-top:14px;overflow:hidden;">
+    {# Bảng hiển thị danh sách dữ liệu hoặc thông tin chi tiết. #}
     <table class="admin-table order-compact">
       <thead>
         <tr>

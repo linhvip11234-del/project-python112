@@ -1,7 +1,9 @@
 {% extends "admin_base.html" %}
 {% load tien %}
+{# Template admin_receipt_detail.html: template quản trị phiếu nhập kho. #}
 {% block title %}Admin - Chi tiết phiếu nhập kho{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
 <div class="card" style="padding:18px;">
   <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
     <div>
@@ -11,6 +13,7 @@
     <div class="row" style="gap:10px;flex-wrap:wrap;">
       <a class="btn" href="{% url 'admin_receipt_list' %}">Quay lại</a>
       {% if receipt.status == 'draft' %}
+        {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
         <form method="post" action="{% url 'admin_receipt_receive' receipt.id %}" style="display:inline;">{% csrf_token %}<button class="btn primary" type="submit">Nhập kho</button></form>
         <form method="post" action="{% url 'admin_receipt_cancel' receipt.id %}" style="display:inline;">{% csrf_token %}<button class="btn" type="submit">Huỷ phiếu</button></form>
       {% endif %}

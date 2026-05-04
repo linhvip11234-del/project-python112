@@ -1,12 +1,15 @@
 {% extends "admin_base.html" %}
+{# Template admin_sanpham_delete.html: template quản trị sản phẩm: danh sách, chi tiết, thêm, sửa hoặc xoá sản phẩm. #}
 {% block title %}Admin - Xoá sản phẩm{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
   <div class="card" style="padding:18px;max-width:720px;">
     <h2 style="margin:0 0 10px;">Xoá sản phẩm</h2>
     <p>Bạn chắc chắn muốn xoá sản phẩm:</p>
     <p><b>#{{ sp.id }} — {{ sp.ten }}</b></p>
     <p class="muted">Nếu sản phẩm đã có đơn hàng, hệ thống sẽ chặn xoá và yêu cầu chuyển sang inactive.</p>
 
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="post" style="display:flex;gap:10px;flex-wrap:wrap;">
       {% csrf_token %}
       <button class="btn danger" type="submit">Xoá</button>

@@ -1,4 +1,5 @@
 {% load static %}
+{# Template base.html: layout nền dùng chung cho toàn bộ website, chứa header, footer, thông báo, static và chatbot. #}
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,6 +8,7 @@
   <title>{% block title %}Lumière{% endblock %}</title>
   <link rel="stylesheet" href="{% static 'style.css' %}?v=logo2">
 
+  {# CSS nội bộ định dạng riêng cho template này. #}
   <style id="chatbot-inline-style">
     /* Chatbot mini - inline để tránh lỗi không tải CSS */
     .chatbot-widget{
@@ -492,6 +494,7 @@
           </div>
         </a>
 
+        {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
         <form class="search" method="get" action="{% url 'home' %}">
           <input name="q" placeholder="Tìm kiếm: nhẫn, dây chuyền..." value="{{ request.GET.q|default:'' }}">
           <button type="submit">Tìm</button>
@@ -557,7 +560,8 @@
       </div>
     {% endif %}
 
-    {% block content %}{% endblock %}
+    {% block content %}
+{# Khối nội dung chính hiển thị cho người dùng. #}{% endblock %}
   </div>
 
 
@@ -636,6 +640,7 @@
     </div>
   </div>
 
+  {# JavaScript xử lý tương tác phía trình duyệt. #}
   <script>
     setTimeout(() => {
       document.querySelectorAll('.toast').forEach((el) => el.classList.add('toast-hide'));

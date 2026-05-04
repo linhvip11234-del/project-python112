@@ -1,11 +1,14 @@
 {% extends "admin_base.html" %}
+{# Template admin_donhang_delete.html: template quản trị đơn hàng: danh sách, chi tiết, tạo/sửa/xoá và cập nhật trạng thái. #}
 {% block title %}Admin - Hủy đơn hàng{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
   <div class="card" style="padding:18px;max-width:720px;">
     <h2 style="margin:0 0 10px;">Hủy đơn hàng</h2>
     <p>Bạn chắc chắn muốn hủy đơn hàng <b>#{{ don.id }}</b>?</p>
     <p><b>Khách:</b> {{ don.nguoi_dat.username }}</p>
     <p><b>Sản phẩm:</b> {{ don.san_pham.ten }}</p>
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="post" style="display:flex;gap:10px;flex-wrap:wrap;">
       {% csrf_token %}
       <button class="btn danger" type="submit">Hủy</button>

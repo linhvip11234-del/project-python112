@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% load tien %}
+{# Template gio_hang.html: trang giỏ hàng cho phép xem, cập nhật số lượng và xoá sản phẩm. #}
 {% block title %}Giỏ hàng{% endblock %}
 {% block content %}
+{# Khối nội dung chính hiển thị cho người dùng. #}
 <div class="section">
   <h2>Giỏ hàng</h2>
   <div class="hint">Tích chọn những sản phẩm bạn muốn mua rồi bấm thanh toán</div>
@@ -56,6 +58,7 @@
               <div class="muted" style="margin:6px 0;">Tồn kho: <b>{{ item.san_pham.ton_kho }}</b></div>
 
               <div class="row" style="flex-wrap:wrap;gap:8px;align-items:end;">
+                {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
                 <form method="post" action="{% url 'cap_nhat_gio_hang' item.id %}" class="row" style="gap:8px;align-items:end;">
                   {% csrf_token %}
                   <div>
@@ -135,6 +138,7 @@
     </div>
   </div>
 
+  {# JavaScript xử lý tương tác phía trình duyệt. #}
   <script>
     (function(){
       const checkboxes = Array.from(document.querySelectorAll('.cart-item-checkbox'));

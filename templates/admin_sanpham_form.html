@@ -1,9 +1,12 @@
 {% extends "admin_base.html" %}
+{# Template admin_sanpham_form.html: template quản trị sản phẩm: danh sách, chi tiết, thêm, sửa hoặc xoá sản phẩm. #}
 {% block title %}Admin - {% if mode == "edit" %}Sửa{% else %}Thêm{% endif %} sản phẩm{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
   <div class="card" style="padding:18px;max-width:860px;">
     <h2 style="margin:0 0 10px;">{% if mode == "edit" %}Sửa{% else %}Thêm{% endif %} sản phẩm</h2>
     {% if form.non_field_errors %}<div class="alert">{{ form.non_field_errors }}</div>{% endif %}
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="post" enctype="multipart/form-data" style="display:grid;gap:12px;">
       {% csrf_token %}
       <div><div class="label">Tên sản phẩm</div>{{ form.ten }}{{ form.ten.errors }}</div>

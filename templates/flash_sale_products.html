@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% load tien %}
+{# Template flash_sale_products.html: danh sách sản phẩm đang Flash Sale. #}
 {% block title %}Flash Sale{% endblock %}
 {% block content %}
+{# Khối nội dung chính hiển thị cho người dùng. #}
   <div class="section">
     <h2>Danh sách Flash Sale</h2>
     <div class="hint">Những sản phẩm đang nằm trong khung giờ ưu đãi có thời hạn.</div>
@@ -26,6 +28,7 @@
           <div class="row" style="flex-wrap:wrap;">
             <a class="btn" href="{% url 'chi_tiet_san_pham' sp.id %}">Xem chi tiết</a>
             {% if user.is_authenticated %}
+              {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
               <form method="post" action="{% url 'add_to_cart' sp.id %}" style="display:inline;">{% csrf_token %}<input type="hidden" name="next" value="{% url 'flash_sale_products' %}"><button class="btn" type="submit">Thêm giỏ hàng</button></form>
             {% endif %}
           </div>

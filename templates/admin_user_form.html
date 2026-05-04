@@ -1,6 +1,8 @@
 {% extends "admin_base.html" %}
+{# Template admin_user_form.html: template quản trị người dùng và phân quyền. #}
 {% block title %}Admin - User{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
   <div class="card" style="padding:18px;max-width:760px;">
     {% if mode == "create" %}
       <h2 style="margin:0 0 10px;">Thêm user</h2>
@@ -12,6 +14,7 @@
       <div class="alert" style="margin-bottom:12px;">{{ form.non_field_errors }}</div>
     {% endif %}
 
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="post" style="display:grid;gap:12px;">
       {% csrf_token %}
 

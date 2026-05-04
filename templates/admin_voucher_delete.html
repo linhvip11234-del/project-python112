@@ -1,7 +1,9 @@
 {% extends "admin_base.html" %}
 {% load tien %}
+{# Template admin_voucher_delete.html: template quản trị voucher/mã giảm giá. #}
 {% block title %}Admin - Xoá voucher{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
   <div class="card" style="padding:18px;max-width:640px;">
     <h2 style="margin-top:0;">Xoá voucher</h2>
     <p>Bạn có chắc muốn xoá voucher <b>{{ voucher.code }}</b> không?</p>
@@ -9,6 +11,7 @@
       {% if voucher.discount_type == "percent" %}Giảm {{ voucher.value }}%{% else %}Giảm {{ voucher.value|vnd }} VND{% endif %}
       · Đã dùng: {{ voucher.used_count }} lần
     </div>
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="post">
       {% csrf_token %}
       <div class="row" style="gap:10px;flex-wrap:wrap;">

@@ -1,7 +1,9 @@
 {% extends "admin_base.html" %}
 {% load tien %}
+{# Template admin_dashboard.html: template giao diện của website Lumière. #}
 {% block title %}Admin - Tổng quan{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
   <div class="card" style="padding:18px;">
     <h2 style="margin:0 0 10px;">Tổng quan</h2>
     <div class="grid-4">
@@ -84,6 +86,7 @@
     <div class="muted" style="margin-top:14px;margin-bottom:8px;">7 ngày gần nhất (doanh thu)</div>
     <canvas id="chartRevenue" height="110"></canvas>
 
+    {# JavaScript xử lý tương tác phía trình duyệt. #}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
       const statusLabels = JSON.parse(document.getElementById('statusLabels').textContent);
@@ -114,6 +117,7 @@
 
   <div class="card" style="padding:18px;margin-top:14px;">
     <h3 style="margin:0 0 10px;">Top sản phẩm theo số đơn</h3>
+    {# Bảng hiển thị danh sách dữ liệu hoặc thông tin chi tiết. #}
     <table style="width:100%;border-collapse:collapse;">
       <tr style="background:#faf7ef;">
         <th style="padding:10px;text-align:left;">Sản phẩm</th>

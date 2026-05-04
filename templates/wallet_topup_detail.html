@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 {% load tien static %}
+{# Template wallet_topup_detail.html: chi tiết yêu cầu nạp ví. #}
 {% block title %}QR nạp tiền{% endblock %}
 {% block content %}
+{# Khối nội dung chính hiển thị cho người dùng. #}
 <div class="payment-page" style="max-width:1120px;margin:16px auto 28px;">
   <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px;">
     <div>
@@ -56,11 +58,13 @@
       </div>
 
       {% if topup.status == 'pending' or topup.status == 'paid' %}
+      {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
       <form id="autoCallbackForm" method="post" action="{% url 'wallet_topup_callback' topup.id %}" style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
         {% csrf_token %}
         <button class="btn primary" type="submit">Tôi đã chuyển khoản</button>
         <a class="btn" href="{% url 'wallet' %}">Về ví</a>
       </form>
+      {# JavaScript xử lý tương tác phía trình duyệt. #}
       <script>
         setTimeout(function(){
           const form = document.getElementById('autoCallbackForm');

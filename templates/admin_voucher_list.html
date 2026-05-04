@@ -1,13 +1,16 @@
 {% extends "admin_base.html" %}
 {% load tien %}
+{# Template admin_voucher_list.html: template quản trị voucher/mã giảm giá. #}
 {% block title %}Admin - Voucher{% endblock %}
 {% block admin_content %}
+{# Khối nội dung chính của trang quản trị. #}
   <div class="card" style="padding:18px;">
     <div class="row" style="justify-content:space-between;gap:10px;flex-wrap:wrap;">
       <h2 style="margin:0;">Voucher</h2>
       <a class="btn primary" href="{% url 'admin_voucher_create' %}">+ Thêm voucher</a>
     </div>
 
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="get" class="filter-bar" style="margin-top:12px;">
       <input class="input" name="q" value="{{ q }}" placeholder="Tìm theo mã / tên / mô tả...">
       <select class="input" name="discount_type">
@@ -31,6 +34,7 @@
     </form>
 
     <div class="table-wrap" style="margin-top:12px;">
+      {# Bảng hiển thị danh sách dữ liệu hoặc thông tin chi tiết. #}
       <table class="tbl">
         <thead>
           <tr>

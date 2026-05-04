@@ -1,10 +1,13 @@
 {% extends "base.html" %}
+{# Template chon_phuong_thuc_khoi_phuc.html: màn hình chọn phương thức khôi phục mật khẩu. #}
 {% block title %}Chọn phương thức khôi phục{% endblock %}
 {% block content %}
+{# Khối nội dung chính hiển thị cho người dùng. #}
 <h2 style="font-family:'Cormorant Garamond',serif;margin:18px 0 10px;">Chọn phương thức khôi phục</h2>
 <div class="formbox">
   <p style="margin-top:0;">Tài khoản: <b>{{ reset_user.username }}</b></p>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px;">
+    {# Form gửi dữ liệu về Django; các form POST sử dụng csrf_token để chống CSRF. #}
     <form method="post" style="border:1px solid #eee;border-radius:16px;padding:18px;">
       {% csrf_token %}
       <input type="hidden" name="method" value="security">
