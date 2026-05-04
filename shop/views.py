@@ -1270,7 +1270,7 @@ def _build_invoice_pdf_response(don: DonHang, *, generated_by_admin: bool = Fals
     pdf.drawString(left + 20 * mm, top - 11 * mm, "Lumière")
     pdf.setFont(font_regular, 9)
     pdf.setFillColor(muted)
-    pdf.drawString(left + 20 * mm, top - 17 * mm, "Lumière – Thanh lịch như gió xuân")
+    pdf.drawString(left + 20 * mm, top - 17 * mm, "Tỏa sáng vẻ đẹp thanh lịch của riêng bạn.")
     pdf.drawString(left + 20 * mm, top - 23 * mm, "Hotline: 0347062159 | Email: lumire@gmail.com | Thái Nguyên")
 
     pdf.setFillColor(dark)
